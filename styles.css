@@ -1,0 +1,167 @@
+:root{
+  --bg:#0f1115;
+  --card:#171a21;
+  --muted:#8b90a2;
+  --text:#e9ecf1;
+  --accent:#7dd3fc;
+  --accent-2:#a78bfa;
+  --ring:#2a2f3a;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Helvetica,Arial,sans-serif;
+  background:linear-gradient(180deg,#0d0f14,#0f1218 30%,#0f1115);
+  color:var(--text);
+}
+
+.site-header{
+  padding:24px 16px 8px;
+  text-align:center;
+}
+.site-header h1{
+  margin:0 0 4px;
+  font-size:28px;
+  letter-spacing:0.5px;
+}
+.subtitle{
+  margin:0;
+  color:var(--muted);
+  font-size:14px;
+}
+
+.carousel-section{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:10px 48px;
+}
+.carousel{
+  display:grid;
+  grid-auto-flow:column;
+  grid-auto-columns:160px;
+  gap:14px;
+  overflow-x:auto;
+  scroll-snap-type:x mandatory;
+  padding:8px 6px 16px;
+}
+.carousel::-webkit-scrollbar{height:8px}
+.carousel::-webkit-scrollbar-thumb{background:var(--ring);border-radius:999px}
+.carousel-card{
+  background:var(--card);
+  border:1px solid var(--ring);
+  border-radius:16px;
+  padding:10px;
+  width:160px;
+  scroll-snap-align:start;
+  cursor:pointer;
+  transition:transform .15s ease, box-shadow .15s ease, border-color .2s ease;
+  box-shadow:0 8px 20px rgba(0,0,0,.25);
+  outline:none;
+}
+.carousel-card:focus-visible{border-color:var(--accent)}
+.carousel-card:hover{transform:translateY(-2px)}
+.carousel-img{
+  width:100%; aspect-ratio:1/1; border-radius:12px; object-fit:cover; background:#222;
+}
+.carousel-title{
+  margin:8px 2px 0;
+  font-size:14px;
+  line-height:1.2;
+}
+.carousel-sub{
+  margin:2px 2px 0;
+  color:var(--muted);
+  font-size:12px;
+}
+
+.carousel-nav{
+  width:40px; height:40px; border-radius:999px; border:1px solid var(--ring);
+  background:var(--card); color:var(--text);
+  display:inline-grid; place-items:center; cursor:pointer;
+}
+.carousel-nav:hover{filter:brightness(1.1)}
+
+.content{
+  display:grid;
+  gap:16px;
+  grid-template-columns:1fr 360px;
+  padding:16px;
+  max-width:1200px; margin:0 auto;
+}
+@media (max-width:900px){
+  .content{grid-template-columns:1fr}
+  .player-panel{order:-1}
+}
+
+.tracks-panel{
+  background:var(--card);
+  border:1px solid var(--ring);
+  border-radius:20px;
+  padding:16px;
+}
+.tracks-panel h2{margin:0 0 10px}
+.track-list{
+  list-style:none; margin:0; padding:0;
+  display:flex; flex-direction:column; gap:6px;
+}
+.track{
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  gap:10px; align-items:center;
+  background:#12151b;
+  border:1px solid #202532;
+  border-radius:12px;
+  padding:10px;
+  cursor:pointer;
+}
+.track:hover{background:#151923}
+.track .num{color:var(--muted); font-variant-numeric:tabular-nums}
+.track .title{font-size:14px}
+.track .duration{color:var(--muted); font-size:12px}
+
+.player-panel{
+  background:var(--card);
+  border:1px solid var(--ring);
+  border-radius:20px;
+  padding:16px;
+  position:sticky; top:16px; height:fit-content;
+}
+.cover-wrap{
+  width:100%; aspect-ratio:1/1; border-radius:16px; overflow:hidden; background:#222;
+  border:1px solid #242a36;
+}
+.cover-wrap img{width:100%; height:100%; object-fit:cover; display:block}
+.now-info{margin:10px 0 8px}
+.now-title{font-weight:600}
+.now-album{color:var(--muted); font-size:13px}
+
+.controls{
+  display:flex; align-items:center; justify-content:center; gap:10px; margin:8px 0;
+}
+.btn{
+  border:1px solid var(--ring); background:#141821; color:var(--text);
+  border-radius:999px; padding:8px; cursor:pointer; display:inline-grid; place-items:center;
+}
+.btn:hover{filter:brightness(1.1)}
+.btn[aria-pressed="true"]{outline:2px solid var(--accent)}
+.btn.primary{
+  padding:10px 12px; font-weight:600; border-color:#324056;
+  box-shadow:0 6px 18px rgba(0,0,0,.25);
+}
+
+.seek-wrap{margin:6px 0 10px}
+.seek-wrap input[type="range"]{width:100%}
+.time-row{display:flex; justify-content:space-between; color:var(--muted); font-size:12px}
+
+.volume-row{
+  display:flex; align-items:center; gap:10px; margin-top:8px; color:var(--muted); font-size:12px;
+}
+.volume-row input[type="range"]{flex:1}
+
+.site-footer{
+  padding:20px; text-align:center; color:var(--muted); font-size:12px;
+}

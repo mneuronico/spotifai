@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Albums</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <h1>Albums</h1>
+    <p class="subtitle">browse & listen</p>
+  </header>
+
+  <main>
+    <!-- Album Carousel -->
+    <section class="carousel-section">
+      <button class="carousel-nav left" id="carouselPrev" aria-label="Previous albums">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="carousel" id="albumCarousel" aria-label="Album carousel" tabindex="0"></div>
+      <button class="carousel-nav right" id="carouselNext" aria-label="Next albums">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </section>
+
+    <!-- Album + Player -->
+    <section class="content">
+      <div class="tracks-panel">
+        <h2 id="albumTitle">Select an album</h2>
+        <ul id="trackList" class="track-list" role="list"></ul>
+      </div>
+
+      <aside class="player-panel" aria-label="Player">
+        <div class="cover-wrap">
+          <img id="nowCover" alt="Cover" />
+        </div>
+        <div class="now-info">
+          <div id="nowSong" class="now-title">—</div>
+          <div id="nowAlbum" class="now-album">—</div>
+        </div>
+
+        <div class="controls">
+          <button id="btnShuffle" class="btn" aria-pressed="false" title="Shuffle">
+            <svg viewBox="0 0 24 24" width="22" height="22"><path d="M16 3h5v5M4 20l16-16M4 4l7 7M13 13l7 7M16 21h5v-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button id="btnPrev" class="btn" title="Previous">
+            <svg viewBox="0 0 24 24" width="22" height="22"><path d="M5 5v14M19 5l-10 7 10 7V5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button id="btnPlayPause" class="btn primary" title="Play / Pause">
+            <svg id="iconPlay" viewBox="0 0 24 24" width="24" height="24"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
+            <svg id="iconPause" viewBox="0 0 24 24" width="24" height="24" style="display:none;"><path d="M6 5h4v14H6zM14 5h4v14h-4z" fill="currentColor"/></svg>
+          </button>
+          <button id="btnNext" class="btn" title="Next">
+            <svg viewBox="0 0 24 24" width="22" height="22"><path d="M19 5v14M5 5l10 7L5 19V5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button id="btnLoop" class="btn" aria-pressed="false" title="Loop track">
+            <svg viewBox="0 0 24 24" width="22" height="22"><path d="M3 11a4 4 0 014-4h11M21 13a4 4 0 01-4 4H6M7 7l-3-3M20 20l-3-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+
+        <div class="seek-wrap">
+          <input id="seek" type="range" min="0" max="100" value="0" step="0.1" aria-label="Seek" />
+          <div class="time-row">
+            <span id="curTime">0:00</span>
+            <span id="durTime">0:00</span>
+          </div>
+        </div>
+
+        <div class="volume-row">
+          <label for="vol">volume</label>
+          <input id="vol" type="range" min="0" max="1" step="0.01" value="0.9" />
+        </div>
+
+        <audio id="audio" preload="metadata" crossorigin="anonymous"></audio>
+      </aside>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span>Made for albums in folders • static • GitHub Pages ready</span>
+  </footer>
+
+  <script src="script.js" defer></script>
+</body>
+</html>
