@@ -40,6 +40,12 @@ for (const albumName of fs.readdirSync(albumsDir)){
   const files = fs.readdirSync(albumPath);
   const coverExists = files.includes('cover.png');
 
+  let artist = null;
+  const artistPath = path.join(albumPath, 'artist.txt');
+  if (isFile(artistPath)) {
+    artist = fs.readFileSync(artistPath, 'utf8').trim();
+  }
+
   const mp3s = files.filter(f => /\.mp3$/i.test(f));
   const pngs = new Set(files.filter(f => /\.png$/i.test(f)));
 
@@ -67,6 +73,7 @@ for (const albumName of fs.readdirSync(albumsDir)){
     title: albumName,
     folder: `albums/${albumName}`,
     coverExists,
+    artist: artist || null,
     tracks
   });
 }

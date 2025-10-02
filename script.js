@@ -26,8 +26,9 @@ const els = {
 
 let state = {
   albums: [],
-  currentAlbumIdx: -1,
-  currentTrackIdx: -1,
+  selectedAlbumIdx: -1,
+  playingAlbumIdx: -1,
+  playingTrackIdx: -1,
   shuffledIndices: null,
   isShuffle: false,
   isLoop: false,
@@ -82,6 +83,45 @@ function albumCoverUrl(album){
   return makePlaceholderDataURL(album.title);
 }
 
+function isNothingPlaying(){
+  // “nada sonando” = audio pausado y sin haber avanzado
+  return els.audio.paused && (els.audio.currentTime === 0);
+}
+
+function startPlayingAt(albumIdx, trackIdx){
+  state.playingAlbumIdx = albumIdx;
+  state.playingTrackIdx = trackIdx;
+  state.selectedAlbumIdx = (state.selectedAlbumIdx === -1 ? albumIdx : state.selectedAlbumIdx);
+  state.shuffledIndices = null; // reset cuando arranca nuevo álbum
+
+  const album = state.albums[albumIdx];
+  const track = album.tracks[trackIdx];
+
+  // UI: player
+  const albumLabel = album.artist ? `${album.title} — ${album.artist}` : album.title;
+  els.nowSong.textContent = `${pad(track.number)} — ${track.title}`;
+  els.nowAlbum.textContent = albumLabel;
+  els.nowCover.src = trackCoverUrl(album, track);
+
+  const src = encodePath(`${album.folder}/${track.base}.mp3`);
+  const abs = (new URL(src, location.href)).href;
+  if (els.audio.src !== abs) els.audio.src = src;
+
+  els.audio.play().catch(()=>{});
+  updatePlayIcon();
+  highlightCurrentTrack();
+  updateCarouselIndicators();
+}
+
+function updateCarouselIndicators(){
+  const cards = getCards();
+  cards.forEach((card, idx)=>{
+    card.classList.toggle('is-selected', idx === state.selectedAlbumIdx);
+    card.classList.toggle('is-playing', idx === state.playingAlbumIdx);
+  });
+}
+
+
 function renderCarousel(){
   els.carousel.innerHTML = '';
   state.albums.forEach((alb, idx)=>{
@@ -89,18 +129,22 @@ function renderCarousel(){
     card.className = 'carousel-card';
     card.setAttribute('aria-label', `Select album ${alb.title}`);
 
-    // CLICK: seleccionar y reproducir primera canción
     card.addEventListener('click', ()=>{
       selectAlbum(idx);
-      if (state.albums[idx]?.tracks?.length) playTrack(0);
+      const hasTracks = state.albums[idx]?.tracks?.length;
+      if (hasTracks && isNothingPlaying()) {
+        startPlayingAt(idx, 0);
+      }
     });
 
-    // ENTER o SPACE: idem (accesibilidad)
     card.addEventListener('keydown', (e)=>{
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         selectAlbum(idx);
-        if (state.albums[idx]?.tracks?.length) playTrack(0);
+        const hasTracks = state.albums[idx]?.tracks?.length;
+        if (hasTracks && isNothingPlaying()) {
+          startPlayingAt(idx, 0);
+        }
       }
     });
 
@@ -115,7 +159,8 @@ function renderCarousel(){
 
     const sub = document.createElement('div');
     sub.className = 'carousel-sub';
-    sub.textContent = `${alb.tracks.length} track${alb.tracks.length!==1?'s':''}`;
+    const countTxt = `${alb.tracks.length} track${alb.tracks.length!==1?'s':''}`;
+    sub.textContent = alb.artist ? `${countTxt} • ${alb.artist}` : countTxt;
 
     card.append(img, title, sub);
     els.carousel.appendChild(card);
@@ -162,17 +207,26 @@ function attachCarouselArrowHandlers(){
 }
 
 function selectAlbum(idx){
-  state.currentAlbumIdx = idx;
+  state.selectedAlbumIdx = idx;
   const album = state.albums[idx];
   els.albumTitle.textContent = album.title;
-  els.nowAlbum.textContent = album.title;
-  els.trackList.innerHTML = '';
+  els.nowAlbum.textContent = (state.playingAlbumIdx !== -1)
+    ? els.nowAlbum.textContent
+    : (album.artist ? `${album.title} — ${album.artist}` : album.title);
+  // artista en el panel de temas
+  const artistTxt = album.artist || '—';
+  const artistEl = document.getElementById('albumArtist');
+  if (artistEl) artistEl.textContent = artistTxt;
 
+  els.trackList.innerHTML = '';
   album.tracks.forEach((t, tIdx)=>{
     const li = document.createElement('li');
     li.className = 'track';
     li.dataset.index = tIdx;
-    li.addEventListener('click', ()=> playTrack(tIdx));
+    li.addEventListener('click', ()=> {
+      // si hacés click en un track, sí cambiamos lo que suena a este álbum/track
+      startPlayingAt(idx, tIdx);
+    });
 
     const num = document.createElement('div'); num.className='num'; num.textContent = pad(t.number);
     const title = document.createElement('div'); title.className = 'title'; title.textContent = t.title;
@@ -182,43 +236,23 @@ function selectAlbum(idx){
     els.trackList.appendChild(li);
   });
 
-  // load first track visual (don’t autoplay)
-  if (album.tracks.length){
-    setNowPlaying(idx, 0, false);
-  }
-  // reset shuffle order for new album
-  state.shuffledIndices = null;
-}
-
-function setNowPlaying(albumIdx, trackIdx, andPlay=true){
-  state.currentAlbumIdx = albumIdx;
-  state.currentTrackIdx = trackIdx;
-  const album = state.albums[albumIdx];
-  const track = album.tracks[trackIdx];
-
-  els.nowSong.textContent = `${pad(track.number)} — ${track.title}`;
-  els.nowAlbum.textContent = album.title;
-  els.nowCover.src = trackCoverUrl(album, track);
-
-  const src = encodePath(`${album.folder}/${track.base}.mp3`);
-  if (els.audio.src !== (new URL(src, location.href)).href) {
-    els.audio.src = src;
-  }
-
-  if (andPlay) els.audio.play().catch(()=>{ /* user gesture may be required */ });
-  updatePlayIcon();
   highlightCurrentTrack();
+  updateCarouselIndicators();
 }
+
 
 function highlightCurrentTrack(){
+  // Sólo resaltamos en la lista del álbum seleccionado si coincide con el que suena
   const items = els.trackList.querySelectorAll('.track');
   items.forEach(li => li.style.outline = '');
-  const active = els.trackList.querySelector(`.track[data-index="${state.currentTrackIdx}"]`);
-  if (active) active.style.outline = '2px solid var(--accent)';
+  if (state.selectedAlbumIdx === state.playingAlbumIdx) {
+    const active = els.trackList.querySelector(`.track[data-index="${state.playingTrackIdx}"]`);
+    if (active) active.style.outline = '2px solid var(--accent)';
+  }
 }
 
 function nextIndex(){
-  const album = state.albums[state.currentAlbumIdx];
+  const album = state.albums[state.playingAlbumIdx];
   if (!album) return 0;
 
   if (state.isShuffle){
@@ -229,30 +263,41 @@ function nextIndex(){
         [state.shuffledIndices[i], state.shuffledIndices[j]] = [state.shuffledIndices[j], state.shuffledIndices[i]];
       }
     }
-    const pos = state.shuffledIndices.indexOf(state.currentTrackIdx);
+    const pos = state.shuffledIndices.indexOf(state.playingTrackIdx);
     const nextPos = (pos+1) % state.shuffledIndices.length;
     return state.shuffledIndices[nextPos];
   }
 
-  return (state.currentTrackIdx + 1) % album.tracks.length;
+  return (state.playingTrackIdx + 1) % album.tracks.length;
 }
 
 function prevIndex(){
-  const album = state.albums[state.currentAlbumIdx];
+  const album = state.albums[state.playingAlbumIdx];
   if (!album) return 0;
 
   if (state.isShuffle && state.shuffledIndices){
-    const pos = state.shuffledIndices.indexOf(state.currentTrackIdx);
+    const pos = state.shuffledIndices.indexOf(state.playingTrackIdx);
     const prevPos = (pos-1+state.shuffledIndices.length) % state.shuffledIndices.length;
     return state.shuffledIndices[prevPos];
   }
 
-  return (state.currentTrackIdx - 1 + album.tracks.length) % album.tracks.length;
+  return (state.playingTrackIdx - 1 + album.tracks.length) % album.tracks.length;
 }
 
-function playTrack(idx){ setNowPlaying(state.currentAlbumIdx, idx, true); }
-function playNext(){ setNowPlaying(state.currentAlbumIdx, nextIndex(), true); }
-function playPrev(){ setNowPlaying(state.currentAlbumIdx, prevIndex(), true); }
+function playNext(){
+  const album = state.albums[state.playingAlbumIdx];
+  if (!album) return;
+  const nextIdx = nextIndex();
+  startPlayingAt(state.playingAlbumIdx, nextIdx);
+}
+
+function playPrev(){
+  const album = state.albums[state.playingAlbumIdx];
+  if (!album) return;
+  const prevIdx = prevIndex();
+  startPlayingAt(state.playingAlbumIdx, prevIdx);
+}
+
 
 function updatePlayIcon(){
   const playing = !els.audio.paused;
@@ -267,8 +312,8 @@ function attachEvents(){
     if (els.audio.paused) els.audio.play().catch(()=>{});
     else els.audio.pause();
   });
-  els.audio.addEventListener('play', updatePlayIcon);
-  els.audio.addEventListener('pause', updatePlayIcon);
+  els.audio.addEventListener('play', ()=>{ updatePlayIcon(); updateCarouselIndicators(); });
+  els.audio.addEventListener('pause', ()=>{ updatePlayIcon(); updateCarouselIndicators(); });
 
   els.btnNext.addEventListener('click', playNext);
   els.btnPrev.addEventListener('click', playPrev);
@@ -298,9 +343,26 @@ function attachEvents(){
   els.vol.addEventListener('input', ()=>{ els.audio.volume = parseFloat(els.vol.value); });
 
   els.audio.addEventListener('ended', ()=>{
-    if (state.isLoop) { els.audio.currentTime = 0; els.audio.play().catch(()=>{}); return; }
-    playNext();
+    if (state.isLoop) {
+      els.audio.currentTime = 0; els.audio.play().catch(()=>{});
+      return;
+    }
+
+    const album = state.albums[state.playingAlbumIdx];
+    if (!album) return;
+
+    const isLastTrackNoShuffle = !state.isShuffle && (state.playingTrackIdx === album.tracks.length - 1);
+
+    if (isLastTrackNoShuffle) {
+      // pasar al primer tema del siguiente álbum (circular)
+      const nextAlbum = (state.playingAlbumIdx + 1) % state.albums.length;
+      startPlayingAt(nextAlbum, 0);
+      // si estabas mirando el álbum que sigue, dejá la selección como está; si no, no cambiamos selected
+    } else {
+      playNext();
+    }
   });
+
 }
 
 async function loadManifest(){
@@ -313,6 +375,7 @@ async function loadManifest(){
     title: a.title,
     folder: a.folder,
     coverExists: !!a.coverExists,
+    artist: a.artist || null,
     tracks: a.tracks.map(t=>({
       number: t.number,
       title: t.title,

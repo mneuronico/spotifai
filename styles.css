@@ -98,6 +98,25 @@ body{
 .carousel-nav.right{right:18px}
 .carousel-nav:hover{filter:brightness(1.06)}
 
+/* Indicadores de estado en carrusel */
+.carousel-card.is-selected{
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 40%, transparent);
+}
+
+.carousel-card.is-playing{
+  position: relative;
+}
+.carousel-card.is-playing::after{
+  content:"●";
+  position:absolute;
+  top:8px; right:12px;
+  font-size:12px;
+  line-height:1;
+  /* usa color por defecto; luce como “ahora suena” */
+}
+
+
 
 /* ===== LAYOUT ===== */
 .content{
@@ -126,10 +145,16 @@ body{
 .track .title{font-size:14px}
 .track .duration{color:var(--muted);font-size:12px}
 
+.album-artist{
+  margin-top:2px;
+  color:var(--muted);
+  font-size:13px;
+}
+
 /* player */
 .player-panel{
   background:var(--card);border:1px solid var(--ring);
-  border-radius:20px;padding:16px;position:sticky;top:16px;height:fit-content;
+  border-radius:20px;padding:16px;
 }
 .cover-wrap{
   width:100%;aspect-ratio:1/1;border-radius:16px;overflow:hidden;background:#222;border:1px solid #242a36;
