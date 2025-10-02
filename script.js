@@ -88,8 +88,17 @@ function renderCarousel(){
     const card = document.createElement('button');
     card.className = 'carousel-card';
     card.setAttribute('aria-label', `Select album ${alb.title}`);
-    card.addEventListener('click', ()=>selectAlbum(idx));
-    card.addEventListener('keydown', (e)=>{ if (e.key==='Enter' || e.key===' ') { e.preventDefault(); selectAlbum(idx);} });
+    card.addEventListener('click', ()=>{
+      selectAlbum(idx);
+      playTrack(0);            // ▶️ arranca la primera canción
+    });
+    card.addEventListener('keydown', (e)=>{
+      if (e.key==='Enter' || e.key===' ') {
+        e.preventDefault();
+        selectAlbum(idx);
+        playTrack(0);          // ▶️ también con Enter o espacio
+      }
+    });
     const img = document.createElement('img');
     img.className = 'carousel-img';
     img.src = albumCoverUrl(alb);
@@ -204,27 +213,43 @@ function updatePlayIcon(){
   els.iconPause.style.display = playing ? '' : 'none';
 }
 
-function scrollToNextCard(){
+
+function getCardPositions(){
   const c = els.carousel;
   const cards = [...c.querySelectorAll('.carousel-card')];
-  const cur = c.scrollLeft;
+  // offsetLeft de cada card respecto al inicio scrolleable del carrusel
+  return cards.map(card => card.offsetLeft);
+}
 
-  // Próximo card que empieza después del borde visible actual
-  const next = cards.find(card => card.offsetLeft > cur + 1);
-  const targetLeft = next ? next.offsetLeft : (c.scrollWidth - c.clientWidth);
-  c.scrollTo({ left: targetLeft, behavior: 'smooth' });
+// Índice del card “actual” según scrollLeft
+function getCurrentCardIndex(){
+  const c = els.carousel;
+  const pos = getCardPositions();
+  const cur = c.scrollLeft;
+  // Encontrá el mayor offset <= cur (con pequeña tolerancia)
+  const EPS = 2; // pix de tolerancia
+  let i = 0;
+  while (i < pos.length - 1 && pos[i + 1] <= cur + EPS) i++;
+  return i;
+}
+
+function scrollToCard(index){
+  const c = els.carousel;
+  const pos = getCardPositions();
+  const clamped = Math.max(0, Math.min(index, pos.length - 1));
+  c.scrollTo({ left: pos[clamped], behavior: 'smooth' });
+}
+
+function scrollToNextCard(){
+  const i = getCurrentCardIndex();
+  scrollToCard(i + 1);
 }
 
 function scrollToPrevCard(){
-  const c = els.carousel;
-  const cards = [...c.querySelectorAll('.carousel-card')];
-  const cur = c.scrollLeft;
-
-  // Último card que comienza antes del borde visible actual
-  const prev = [...cards].reverse().find(card => card.offsetLeft < cur - 1);
-  const targetLeft = prev ? prev.offsetLeft : 0;
-  c.scrollTo({ left: targetLeft, behavior: 'smooth' });
+  const i = getCurrentCardIndex();
+  scrollToCard(i - 1);
 }
+
 
 
 function attachEvents(){
