@@ -32,16 +32,18 @@ body{
 .site-header h1{margin:0 0 4px;font-size:clamp(26px,4vw,36px);letter-spacing:0.3px}
 .subtitle{margin:0;color:var(--muted);font-size:clamp(13px,2.4vw,15px)}
 
-/* ===== CAROUSEL (right-sized) ===== */
+/* ===== CAROUSEL (centered) ===== */
 .carousel-section{
-  position:relative;display:flex;align-items:center;gap:10px;padding:12px 36px;
+  position:relative;
+  padding:12px 72px;            /* room for absolute arrows */
+  max-width:1200px;             /* center the whole band */
+  margin:0 auto;                /* center it in the page */
 }
 
-/* Key change: smaller, saner card width.
+/* Right-sized card width:
    - phones ≈ 48vw
    - tablets ≈ 22vw
-   - desktop caps at 220px
-*/
+   - desktop cap 220px */
 .carousel{
   display:grid;
   grid-auto-flow:column;
@@ -51,6 +53,11 @@ body{
   scroll-snap-type:x mandatory;
   padding:8px 4px 14px;
   scrollbar-width:thin;
+
+  /* keep the track visually centered when there’s extra space */
+  max-width:100%;
+  margin:0 auto;
+  justify-content:center;
 }
 .carousel::-webkit-scrollbar{height:8px}
 .carousel::-webkit-scrollbar-thumb{background:var(--ring);border-radius:999px}
@@ -74,19 +81,23 @@ body{
 .carousel-title{margin:8px 2px 0;font-size:14px;line-height:1.25}
 .carousel-sub{margin:2px 2px 0;color:var(--muted);font-size:12px}
 
+/* arrows no longer affect layout */
 .carousel-nav{
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%);
   width:38px;height:38px;border-radius:999px;border:1px solid var(--ring);
   background:var(--card);color:var(--text);
   display:inline-grid;place-items:center;cursor:pointer;
 }
+.carousel-nav.left{left:18px}
+.carousel-nav.right{right:18px}
 .carousel-nav:hover{filter:brightness(1.06)}
-.carousel-nav.left{margin-right:-4px}
-.carousel-nav.right{margin-left:-4px}
 
 /* ===== LAYOUT ===== */
 .content{
   display:grid;gap:16px;
-  grid-template-columns:1fr 360px; /* back to original-ish width */
+  grid-template-columns:1fr 360px;
   padding:16px;max-width:1200px;margin:0 auto;
 }
 @media (max-width:900px){

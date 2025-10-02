@@ -253,6 +253,7 @@ async function loadManifest(){
   const res = await fetch(manifestUrl);
   if (!res.ok) throw new Error('manifest.json not found. run the generator.');
   const data = await res.json();
+
   // normalize
   state.albums = (data.albums || []).map(a => ({
     title: a.title,
@@ -266,7 +267,13 @@ async function loadManifest(){
       duration: t.duration ?? null,
     })),
   }));
+
+  state.albums.sort((a, b) => {
+    const byCount = b.tracks.length - a.tracks.length;
+    return byCount !== 0 ? byCount : a.title.localeCompare(b.title, undefined, {sensitivity:'base'});
+  });
 }
+
 
 (async function init(){
   try{
