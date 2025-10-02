@@ -204,6 +204,29 @@ function updatePlayIcon(){
   els.iconPause.style.display = playing ? '' : 'none';
 }
 
+function scrollToNextCard(){
+  const c = els.carousel;
+  const cards = [...c.querySelectorAll('.carousel-card')];
+  const cur = c.scrollLeft;
+
+  // Próximo card que empieza después del borde visible actual
+  const next = cards.find(card => card.offsetLeft > cur + 1);
+  const targetLeft = next ? next.offsetLeft : (c.scrollWidth - c.clientWidth);
+  c.scrollTo({ left: targetLeft, behavior: 'smooth' });
+}
+
+function scrollToPrevCard(){
+  const c = els.carousel;
+  const cards = [...c.querySelectorAll('.carousel-card')];
+  const cur = c.scrollLeft;
+
+  // Último card que comienza antes del borde visible actual
+  const prev = [...cards].reverse().find(card => card.offsetLeft < cur - 1);
+  const targetLeft = prev ? prev.offsetLeft : 0;
+  c.scrollTo({ left: targetLeft, behavior: 'smooth' });
+}
+
+
 function attachEvents(){
   els.btnPlayPause.addEventListener('click', ()=>{
     if (els.audio.paused) els.audio.play().catch(()=>{});
@@ -245,8 +268,8 @@ function attachEvents(){
   });
 
   // carousel buttons
-  els.carouselPrev.addEventListener('click', ()=> els.carousel.scrollBy({left:-400, behavior:'smooth'}));
-  els.carouselNext.addEventListener('click', ()=> els.carousel.scrollBy({left:400, behavior:'smooth'}));
+  els.carouselPrev.addEventListener('click', scrollToPrevCard);
+  els.carouselNext.addEventListener('click', scrollToNextCard);
 }
 
 async function loadManifest(){
