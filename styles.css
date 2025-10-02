@@ -55,14 +55,11 @@ body{
   padding:16px 48px;
 }
 
-/* Make cards larger and responsive:
-   - on phones: ~60vw
-   - on tablets: ~28vw
-   - on desktop: 220–280px each */
+/* Make cards larger and responsive:*/
 .carousel{
   display:grid;
   grid-auto-flow:column;
-  grid-auto-columns: clamp(60vw, 28vw, 280px);
+  grid-auto-columns: clamp(40vw, 22vw, 160px);
   gap:16px;
   overflow-x:auto;
   scroll-snap-type:x mandatory;
