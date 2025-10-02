@@ -261,24 +261,6 @@ function updatePlayIcon(){
 }
 
 
-function getCardPositions(){
-  const c = els.carousel;
-  const cards = [...c.querySelectorAll('.carousel-card')];
-  // offsetLeft de cada card respecto al inicio scrolleable del carrusel
-  return cards.map(card => card.offsetLeft);
-}
-
-// Índice del card “actual” según scrollLeft
-function getCurrentCardIndex(){
-  const c = els.carousel;
-  const pos = getCardPositions();
-  const cur = c.scrollLeft;
-  // Encontrá el mayor offset <= cur (con pequeña tolerancia)
-  const EPS = 2; // pix de tolerancia
-  let i = 0;
-  while (i < pos.length - 1 && pos[i + 1] <= cur + EPS) i++;
-  return i;
-}
 
 function attachEvents(){
   els.btnPlayPause.addEventListener('click', ()=>{
@@ -319,10 +301,6 @@ function attachEvents(){
     if (state.isLoop) { els.audio.currentTime = 0; els.audio.play().catch(()=>{}); return; }
     playNext();
   });
-
-  // carousel buttons
-  els.carouselPrev.addEventListener('click', scrollToPrevCard);
-  els.carouselNext.addEventListener('click', scrollToNextCard);
 }
 
 async function loadManifest(){
