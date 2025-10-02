@@ -33,32 +33,32 @@ body{
 .subtitle{margin:0;color:var(--muted);font-size:clamp(13px,2.4vw,15px)}
 
 /* ===== CAROUSEL (centered) ===== */
+/* ===== CAROUSEL (centrado visual con scroll-snap) ===== */
 .carousel-section{
   position:relative;
-  padding:12px 72px;            /* room for absolute arrows */
-  max-width:1200px;             /* center the whole band */
-  margin:0 auto;                /* center it in the page */
+  padding:12px 72px;            /* room para flechas absolutas */
+  max-width:1200px;
+  margin:0 auto;                /* centra toda la banda en la página */
 }
 
-/* Right-sized card width:
-   - phones ≈ 48vw
-   - tablets ≈ 22vw
-   - desktop cap 220px */
+/* Cards de ancho fluido: phones ~48vw, tablets ~22vw, desktop cap 220px */
 .carousel{
   display:grid;
   grid-auto-flow:column;
   grid-auto-columns:clamp(150px, 22vw, 220px);
   gap:12px;
-  overflow-x:auto;
-  scroll-snap-type:x mandatory;
-  padding:8px 4px 14px;
-  scrollbar-width:thin;
 
-  /* keep the track visually centered when there’s extra space */
+  overflow-x:auto;
+  scrollbar-width:thin;
+  padding:8px 20px 14px;        /* padding visible (también ayuda con flechas) */
+
+  /* Scroll-snap correcto y “freno” por card */
+  scroll-snap-type:x mandatory;
+  scroll-padding-inline:20px;   /* espacio respetado al snap en bordes */
+
   max-width:100%;
   margin:0 auto;
-  justify-content:flex-start;
-  scroll-padding-inline: 20px;
+  justify-content:flex-start;   /* ¡importante! no centrar la pista */
 }
 .carousel::-webkit-scrollbar{height:8px}
 .carousel::-webkit-scrollbar-thumb{background:var(--ring);border-radius:999px}
@@ -69,11 +69,14 @@ body{
   border-radius:16px;
   padding:10px;
   width:auto;
-  scroll-snap-align:start;
+  box-shadow:0 8px 20px rgba(0,0,0,.25);
   cursor:pointer;
   transition:transform .15s ease, box-shadow .15s ease, border-color .2s ease;
-  box-shadow:0 8px 20px rgba(0,0,0,.25);
   outline:none;
+
+  /* Snap por item */
+  scroll-snap-align:start;
+  scroll-snap-stop:always;
 }
 .carousel-card:hover{transform:translateY(-1px)}
 .carousel-card:focus-visible{border-color:var(--accent)}
@@ -82,7 +85,7 @@ body{
 .carousel-title{margin:8px 2px 0;font-size:14px;line-height:1.25}
 .carousel-sub{margin:2px 2px 0;color:var(--muted);font-size:12px}
 
-/* arrows no longer affect layout */
+/* Flechas, posicionadas sin afectar layout */
 .carousel-nav{
   position:absolute;
   top:50%;
@@ -94,6 +97,7 @@ body{
 .carousel-nav.left{left:18px}
 .carousel-nav.right{right:18px}
 .carousel-nav:hover{filter:brightness(1.06)}
+
 
 /* ===== LAYOUT ===== */
 .content{

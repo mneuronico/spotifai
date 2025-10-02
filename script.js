@@ -3,6 +3,8 @@ const manifestUrl = 'manifest.json';
 
 const els = {
   carousel: document.getElementById('albumCarousel'),
+  carouselPrev: document.getElementById('carouselPrev'),
+  carouselNext: document.getElementById('carouselNext'),
   albumTitle: document.getElementById('albumTitle'),
   trackList: document.getElementById('trackList'),
   nowCover: document.getElementById('nowCover'),
@@ -20,8 +22,6 @@ const els = {
   curTime: document.getElementById('curTime'),
   durTime: document.getElementById('durTime'),
   vol: document.getElementById('vol'),
-  carouselPrev: document.getElementById('carouselPrev'),
-  carouselNext: document.getElementById('carouselNext'),
 };
 
 let state = {
@@ -88,30 +88,77 @@ function renderCarousel(){
     const card = document.createElement('button');
     card.className = 'carousel-card';
     card.setAttribute('aria-label', `Select album ${alb.title}`);
+
+    // CLICK: seleccionar y reproducir primera canción
     card.addEventListener('click', ()=>{
       selectAlbum(idx);
-      playTrack(0);            // ▶️ arranca la primera canción
+      if (state.albums[idx]?.tracks?.length) playTrack(0);
     });
+
+    // ENTER o SPACE: idem (accesibilidad)
     card.addEventListener('keydown', (e)=>{
-      if (e.key==='Enter' || e.key===' ') {
+      if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         selectAlbum(idx);
-        playTrack(0);          // ▶️ también con Enter o espacio
+        if (state.albums[idx]?.tracks?.length) playTrack(0);
       }
     });
+
     const img = document.createElement('img');
     img.className = 'carousel-img';
     img.src = albumCoverUrl(alb);
     img.alt = `${alb.title} cover`;
+
     const title = document.createElement('div');
     title.className = 'carousel-title';
     title.textContent = alb.title;
+
     const sub = document.createElement('div');
     sub.className = 'carousel-sub';
     sub.textContent = `${alb.tracks.length} track${alb.tracks.length!==1?'s':''}`;
+
     card.append(img, title, sub);
     els.carousel.appendChild(card);
   });
+}
+
+/* === NAVEGACIÓN ESTÁNDAR CON scroll-snap + scrollIntoView ===
+   Usa rectángulos (viewport real) para decidir el card visible y moverse
+   uno a la vez con soporte cross-browser.
+*/
+function getCards(){
+  return [...els.carousel.querySelectorAll('.carousel-card')];
+}
+
+// índice del card cuyo borde izquierdo está más alineado con el borde izquierdo del carrusel
+function getVisibleCardIndex(){
+  const cRect = els.carousel.getBoundingClientRect();
+  const cards = getCards();
+  let best = 0, bestDelta = Infinity;
+  for (let i = 0; i < cards.length; i++){
+    const delta = Math.abs(cards[i].getBoundingClientRect().left - cRect.left);
+    if (delta < bestDelta) { bestDelta = delta; best = i; }
+  }
+  return best;
+}
+
+function scrollToCard(index){
+  const cards = getCards();
+  if (!cards.length) return;
+  const i = Math.max(0, Math.min(index, cards.length - 1));
+  cards[i].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+}
+
+function scrollToNextCard(){ scrollToCard(getVisibleCardIndex() + 1); }
+function scrollToPrevCard(){ scrollToCard(getVisibleCardIndex() - 1); }
+
+/* === LISTENERS DE LAS FLECHAS ===
+   Reemplazá las líneas que antes hacían scrollBy({left:±400,...})f
+   por estas dos:
+*/
+function attachCarouselArrowHandlers(){
+  els.carouselPrev.addEventListener('click', scrollToPrevCard);
+  els.carouselNext.addEventListener('click', scrollToNextCard);
 }
 
 function selectAlbum(idx){
@@ -233,25 +280,6 @@ function getCurrentCardIndex(){
   return i;
 }
 
-function scrollToCard(index){
-  const c = els.carousel;
-  const pos = getCardPositions();
-  const clamped = Math.max(0, Math.min(index, pos.length - 1));
-  c.scrollTo({ left: pos[clamped], behavior: 'smooth' });
-}
-
-function scrollToNextCard(){
-  const i = getCurrentCardIndex();
-  scrollToCard(i + 1);
-}
-
-function scrollToPrevCard(){
-  const i = getCurrentCardIndex();
-  scrollToCard(i - 1);
-}
-
-
-
 function attachEvents(){
   els.btnPlayPause.addEventListener('click', ()=>{
     if (els.audio.paused) els.audio.play().catch(()=>{});
@@ -328,6 +356,7 @@ async function loadManifest(){
     attachEvents();
     await loadManifest();
     renderCarousel();
+    attachCarouselArrowHandlers();
 
     // Auto-select first album if available
     if (state.albums.length) selectAlbum(0);
