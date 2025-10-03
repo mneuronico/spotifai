@@ -210,9 +210,7 @@ function selectAlbum(idx){
   state.selectedAlbumIdx = idx;
   const album = state.albums[idx];
   els.albumTitle.textContent = album.title;
-  els.nowAlbum.textContent = (state.playingAlbumIdx !== -1)
-    ? els.nowAlbum.textContent
-    : (album.artist ? `${album.title} — ${album.artist}` : album.title);
+
   // artista en el panel de temas
   const artistTxt = album.artist || '—';
   const artistEl = document.getElementById('albumArtist');
@@ -224,7 +222,6 @@ function selectAlbum(idx){
     li.className = 'track';
     li.dataset.index = tIdx;
     li.addEventListener('click', ()=> {
-      // si hacés click en un track, sí cambiamos lo que suena a este álbum/track
       startPlayingAt(idx, tIdx);
     });
 
@@ -235,6 +232,30 @@ function selectAlbum(idx){
     li.append(num, title, dur);
     els.trackList.appendChild(li);
   });
+  
+  if (isNothingPlaying()) {
+    const first = album.tracks[0];
+    if (first) {
+      const albumLabel = album.artist ? `${album.title} — ${album.artist}` : album.title;
+      els.nowSong.textContent = `${pad(first.number)} — ${first.title}`;
+      els.nowAlbum.textContent = albumLabel;
+      els.nowCover.src = trackCoverUrl(album, first);
+
+      // opcional: precargar metadata sin reproducir
+      const src = encodePath(`${album.folder}/${first.base}.mp3`);
+      const abs = (new URL(src, location.href)).href;
+      if (els.audio.src !== abs) els.audio.src = src;
+    } else {
+      // si el álbum no tiene temas, al menos mostrar portada de álbum/placeholder
+      els.nowAlbum.textContent = album.artist ? `${album.title} — ${album.artist}` : album.title;
+      els.nowSong.textContent = '—';
+      els.nowCover.src = albumCoverUrl(album);
+    }
+  } else {
+    // si ya hay algo sonando, no tocar el panel "Now Playing"
+    const albumLabel = album.artist ? `${album.title} — ${album.artist}` : album.title;
+    els.nowAlbum.textContent = els.nowAlbum.textContent || albumLabel;
+  }
 
   highlightCurrentTrack();
   updateCarouselIndicators();
