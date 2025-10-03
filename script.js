@@ -25,6 +25,7 @@ const els = {
   sortMode: document.getElementById('sortMode'),
   playAlbumBtn: document.getElementById('playAlbumBtn'),
   albumRelease: document.getElementById('albumRelease'),
+  albumArtist: document.getElementById('albumArtist'),
 };
 
 let state = {
@@ -322,78 +323,25 @@ function selectAlbum(idx){
   const album = state.albums[idx];
   if (!album) return;
 
-  // 1) Título
-  els.albumTitle.textContent = album.title;
+  // 1) Header existente en el DOM
+  els.albumTitle.textContent = album.title || '—';
+  els.albumArtist.textContent = album.artist || '—';
+  els.albumRelease.textContent = album.date_released || '—';
 
-  // 2) Artista (si no viene, deja guion largo)
-  const artistTxt = album.artist || '—';
-  const artistEl = document.getElementById('albumArtist');
-  if (artistEl) artistEl.textContent = artistTxt;
-
-  // 3) Header con fecha y botón "Play álbum"
-  //    Creamos/reciclamos una fila encima de la lista de tracks para: [fecha] [botón Play]
-  const tracksPanel = els.trackList?.closest('.tracks-panel') || els.trackList.parentElement;
-  let headerRow = document.getElementById('albumHeaderRow');
-  if (!headerRow) {
-    headerRow = document.createElement('div');
-    headerRow.id = 'albumHeaderRow';
-    headerRow.className = 'album-header-row';
-    // Insertamos la fila justo antes de la lista de tracks
-    tracksPanel.insertBefore(headerRow, els.trackList);
+  // Botón "Play album" (NO crear otro, reutilizamos el existente)
+  if (els.playAlbumBtn){
+    els.playAlbumBtn.onclick = () => {
+      if (album.tracks.length > 0) startPlayingAt(idx, 0);
+    };
   }
 
-  // Fecha de lanzamiento leída del manifest (si existe)
-  // Formato esperado en manifest/meta.json: YYYY-MM-DD
-  const releaseDate = album.date_released || null;
-
-  // Creamos/actualizamos contenido del headerRow
-  headerRow.innerHTML = '';
-  const leftMeta = document.createElement('div');
-  leftMeta.className = 'album-meta-left';
-
-  const artistLine = document.createElement('div');
-  artistLine.className = 'album-meta-artist';
-  artistLine.textContent = artistTxt;
-
-  const dateLine = document.createElement('div');
-  dateLine.className = 'album-meta-date';
-  dateLine.id = 'albumDate';
-  dateLine.textContent = releaseDate ? `Release: ${releaseDate}` : '';
-
-  leftMeta.appendChild(artistLine);
-  leftMeta.appendChild(dateLine);
-
-  const rightActions = document.createElement('div');
-  rightActions.className = 'album-meta-actions';
-
-  const playBtn = document.createElement('button');
-  playBtn.id = 'btnPlayAlbum';
-  playBtn.className = 'btn primary';
-  playBtn.type = 'button';
-  playBtn.title = 'Reproducir álbum';
-  playBtn.innerHTML = `
-    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
-    <span style="margin-left:6px">Play álbum</span>
-  `;
-  playBtn.addEventListener('click', () => {
-    // reproducir desde la pista 1
-    if (album.tracks.length > 0) startPlayingAt(idx, 0);
-  });
-
-  rightActions.appendChild(playBtn);
-
-  headerRow.appendChild(leftMeta);
-  headerRow.appendChild(rightActions);
-
-  // 4) Lista de pistas
+  // 2) Lista de pistas
   els.trackList.innerHTML = '';
   album.tracks.forEach((t, tIdx) => {
     const li = document.createElement('li');
     li.className = 'track';
     li.dataset.index = tIdx;
-    li.addEventListener('click', () => {
-      startPlayingAt(idx, tIdx);
-    });
+    li.addEventListener('click', () => startPlayingAt(idx, tIdx));
 
     const num = document.createElement('div');
     num.className = 'num';
@@ -411,7 +359,7 @@ function selectAlbum(idx){
     els.trackList.appendChild(li);
   });
 
-  // 5) Si no hay nada sonando, pre-cargamos el primer tema para el panel "Now Playing"
+  // 3) If no hay nada sonando, precargar primer tema para "Now Playing"
   if (isNothingPlaying()) {
     const first = album.tracks[0];
     if (first) {
@@ -424,32 +372,27 @@ function selectAlbum(idx){
       const abs = (new URL(src, location.href)).href;
       if (els.audio.src !== abs) els.audio.src = src;
     } else {
-      // álbum vacío: al menos mostrar portada o placeholder
       els.nowAlbum.textContent = album.artist ? `${album.title} — ${album.artist}` : album.title;
       els.nowSong.textContent = '—';
       els.nowCover.src = albumCoverUrl(album);
     }
   } else {
-    // Si ya hay algo sonando, no pisamos el "Now Playing"
-    // Solo aseguramos que el texto del álbum no quede vacío en UI inicial
+    // no pisamos Now Playing; solo aseguramos que no quede vacío
     const albumLabel = album.artist ? `${album.title} — ${album.artist}` : album.title;
     els.nowAlbum.textContent = els.nowAlbum.textContent || albumLabel;
   }
 
-  // 5.5) URL shareable: ?album=<slug>
-  if (!suppressUrlUpdate) {
-    setAlbumSlugInUrl(albumSlug(album));
-  }
+  // 4) URL shareable
+  if (!suppressUrlUpdate) setAlbumSlugInUrl(albumSlug(album));
 
-  // 6) UI: resaltar pista actual y estados del carrusel
+  // 5) UI
   highlightCurrentTrack();
   updateCarouselIndicators();
 
-  // 7) Fallback: completar duraciones que falten (si implementaste fillMissingDurationsForAlbum)
-  if (typeof fillMissingDurationsForAlbum === 'function') {
-    fillMissingDurationsForAlbum(idx);
-  }
+  // 6) Fallback de duraciones
+  if (typeof fillMissingDurationsForAlbum === 'function') fillMissingDurationsForAlbum(idx);
 }
+
 
 
 
@@ -618,19 +561,30 @@ function sortAlbumsInPlace(mode){
   state.selectedAlbumIdx = idxById(selected);
 }
 
+function applySortAndRender(){
+  sortAlbumsInPlace(state.sortMode || 'added_desc');
+  renderCarousel();
+  updateCarouselIndicators();
+}
+
+
 
 async function loadManifest(){
   const res = await fetch(manifestUrl);
   if (!res.ok) throw new Error('manifest.json not found. run the generator.');
   const data = await res.json();
 
-  // normalize
+  // normalize: ahora incluimos id, dates y recommended
   state.albums = (data.albums || []).map(a => ({
+    id: a.id || a.folder || a.title,         // id estable del generator
     title: a.title,
     folder: a.folder,
     coverExists: !!a.coverExists,
     artist: a.artist || null,
-    tracks: a.tracks.map(t=>({
+    date_released: a.date_released || null,
+    date_added: a.date_added || null,
+    recommended: !!a.recommended,
+    tracks: (a.tracks || []).map(t => ({
       number: t.number,
       title: t.title,
       base: t.base,
@@ -639,19 +593,44 @@ async function loadManifest(){
     })),
   }));
 
-  state.albums.sort((a, b) => {
-    const byCount = b.tracks.length - a.tracks.length;
-    return byCount !== 0 ? byCount : a.title.localeCompare(b.title, undefined, {sensitivity:'base'});
-  });
+  // NO ordenamos acá por cantidad; aplicamos el sort default (added_desc) luego
 }
+
 
 
 (async function init(){
   try{
     attachEvents();
     await loadManifest();
-    renderCarousel();
+
+    // sort default (más nuevos por date_added)
+    state.sortMode = 'added_desc';
+    applySortAndRender();
+
     attachCarouselArrowHandlers();
+
+    // wiring del dropdown "Ordenar por"
+    if (els.sortMode){
+      els.sortMode.value = state.sortMode;
+      els.sortMode.addEventListener('change', () => {
+        state.sortMode = els.sortMode.value;
+        // recordar cuál está seleccionado para mantener foco/visibilidad
+        const selId = state.albums[state.selectedAlbumIdx]?.id || null;
+        applySortAndRender();
+
+        // mantener seleccionada la misma tarjeta si existe aún
+        if (selId){
+          const idx = state.albums.findIndex(a => a.id === selId);
+          if (idx !== -1){
+            state.selectedAlbumIdx = idx;
+            updateCarouselIndicators();
+            // opcional: scrollear hacia la tarjeta visible
+            scrollToCard(idx);
+          }
+        }
+      });
+    }
+
 
     // URL -> abrir álbum si viene ?album=<slug>
     const slug = getAlbumSlugFromUrl();

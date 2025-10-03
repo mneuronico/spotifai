@@ -63,6 +63,7 @@ body{
 .carousel::-webkit-scrollbar-thumb{background:var(--ring);border-radius:999px}
 
 .carousel-card{
+  position:relative;             /* <— necesario para ubicar .badges */
   background:var(--card);
   border:1px solid var(--ring);
   border-radius:16px;
@@ -77,6 +78,7 @@ body{
   scroll-snap-align:start;
   scroll-snap-stop:always;
 }
+
 .carousel-card:hover{transform:translateY(-1px)}
 .carousel-card:focus-visible{border-color:var(--accent)}
 
