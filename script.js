@@ -83,6 +83,33 @@ function findAlbumIndexBySlug(slug){
 let suppressUrlUpdate = false;
 
 
+function trackSlug(track){
+  // 01 - Título → "01-titulo"
+  return slugify(`${pad(track.number)} ${track.title}`);
+}
+
+function getTrackSlugFromUrl(){
+  try{
+    const u = new URL(location.href);
+    return u.searchParams.get('track');
+  }catch{ return null; }
+}
+function setTrackSlugInUrl(slug, {replace=false} = {}){
+  try{
+    const u = new URL(location.href);
+    if (slug) u.searchParams.set('track', slug);
+    else u.searchParams.delete('track');
+    const newUrl = u.pathname + u.search + u.hash;
+    if (replace) history.replaceState({}, '', newUrl);
+    else history.pushState({}, '', newUrl);
+  }catch{}
+}
+function clearTrackFromUrl({replace=false} = {}){
+  setTrackSlugInUrl(null, {replace});
+}
+
+
+
 function hashH(str){
   // simple 32-bit hash → hue 0..359
   let h=2166136261>>>0;
@@ -208,16 +235,11 @@ function renderCarousel(){
 
     card.addEventListener('click', ()=>{
       selectAlbum(idx);
-      const hasTracks = state.albums[idx]?.tracks?.length;
-      if (hasTracks && isNothingPlaying()) startPlayingAt(idx, 0);
     });
-
     card.addEventListener('keydown', (e)=>{
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         selectAlbum(idx);
-        const hasTracks = state.albums[idx]?.tracks?.length;
-        if (hasTracks && isNothingPlaying()) startPlayingAt(idx, 0);
       }
     });
 
@@ -341,8 +363,10 @@ function selectAlbum(idx){
     const li = document.createElement('li');
     li.className = 'track';
     li.dataset.index = tIdx;
-    li.addEventListener('click', () => startPlayingAt(idx, tIdx));
-
+    li.addEventListener('click', () => {
+      startPlayingAt(idx, tIdx);                    // reproducir
+      setTrackSlugInUrl(trackSlug(album.tracks[tIdx])); // poner ?track=...
+    });
     const num = document.createElement('div');
     num.className = 'num';
     num.textContent = pad(t.number);
@@ -383,8 +407,10 @@ function selectAlbum(idx){
   }
 
   // 4) URL shareable
-  if (!suppressUrlUpdate) setAlbumSlugInUrl(albumSlug(album));
-
+  if (!suppressUrlUpdate) {
+    setAlbumSlugInUrl(albumSlug(album));
+    clearTrackFromUrl({replace:true}); // al elegir álbum, sacamos 'track'
+  }
   // 5) UI
   highlightCurrentTrack();
   updateCarouselIndicators();
@@ -643,16 +669,52 @@ async function loadManifest(){
       }
     }
 
+    // Si viene ?track=<slug> en la URL, solo preseleccionamos/mostramos (sin autoplay)
+    const trackParam = getTrackSlugFromUrl();
+    if (trackParam && initIdx !== -1) {
+      const trkIdx = state.albums[initIdx].tracks.findIndex(t => trackSlug(t) === trackParam);
+      if (trkIdx !== -1) {
+        // mostrar info de ese track sin reproducir
+        const alb = state.albums[initIdx];
+        const t = alb.tracks[trkIdx];
+        els.nowSong.textContent = `${pad(t.number)} — ${t.title}`;
+        els.nowAlbum.textContent = alb.artist ? `${alb.title} — ${alb.artist}` : alb.title;
+        els.nowCover.src = trackCoverUrl(alb, t);
+        // no seteamos els.audio.play(); ni cambiamos src (si querés, podés precargar metadata):
+        const src = encodePath(`${alb.folder}/${t.base}.mp3`);
+        const abs = (new URL(src, location.href)).href;
+        if (els.audio.src !== abs) els.audio.src = src; // solo preload, no reproducir
+      }
+    }
+
+
     // Soporte para botón Atrás/Adelante del navegador
     window.addEventListener('popstate', () => {
-      const s = getAlbumSlugFromUrl();
-      const idx = findAlbumIndexBySlug(s);
-      if (idx !== -1){
+      const sAlb = getAlbumSlugFromUrl();
+      const idxAlb = findAlbumIndexBySlug(sAlb);
+      if (idxAlb !== -1){
         suppressUrlUpdate = true;
-        selectAlbum(idx);
+        selectAlbum(idxAlb);
         suppressUrlUpdate = false;
+
+        const sTrk = getTrackSlugFromUrl();
+        if (sTrk){
+          const trkIdx = state.albums[idxAlb].tracks.findIndex(t => trackSlug(t) === sTrk);
+          if (trkIdx !== -1){
+            // Solo mostrar/preparar, sin autoplay
+            const alb = state.albums[idxAlb];
+            const t = alb.tracks[trkIdx];
+            els.nowSong.textContent = `${pad(t.number)} — ${t.title}`;
+            els.nowAlbum.textContent = alb.artist ? `${alb.title} — ${alb.artist}` : alb.title;
+            els.nowCover.src = trackCoverUrl(alb, t);
+            const src = encodePath(`${alb.folder}/${t.base}.mp3`);
+            const abs = (new URL(src, location.href)).href;
+            if (els.audio.src !== abs) els.audio.src = src;
+          }
+        }
       }
     });
+
 
   }catch(err){
     console.error(err);

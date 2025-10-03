@@ -248,6 +248,21 @@ body{
 }
 
 
+.btn-spotify{
+  background: #1DB954;
+  border-color: #149946;
+  color: #fff;
+}
+.btn-spotify:hover{
+  filter: none;
+  background: #1ed760;
+  border-color: #16a34a;
+}
+.btn-spotify[aria-pressed="true"]{
+  outline: 2px solid #86efac; /* opcional */
+}
+
+
 .seek-wrap{margin:6px 0 10px}
 .seek-wrap input[type="range"]{width:100%}
 .time-row{display:flex;justify-content:space-between;color:var(--muted);font-size:12px}
