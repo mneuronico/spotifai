@@ -33,7 +33,6 @@ body{
 .subtitle{margin:0;color:var(--muted);font-size:clamp(13px,2.4vw,15px)}
 
 /* ===== CAROUSEL (centered) ===== */
-/* ===== CAROUSEL (centrado visual con scroll-snap) ===== */
 .carousel-section{
   position:relative;
   padding:12px 72px;            /* room para flechas absolutas */
@@ -116,6 +115,43 @@ body{
   /* usa color por defecto; luce como “ahora suena” */
 }
 
+/* sort bar */
+.sort-bar{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:0 0 8px 0;
+  padding:0 20px;
+  color:var(--muted);
+  font-size:13px;
+}
+.sort-bar select{
+  background:var(--card);
+  color:var(--text);
+  border:1px solid var(--ring);
+  border-radius:10px;
+  padding:6px 10px;
+}
+
+/* badges */
+.badges{
+  position:absolute;
+  top:8px; left:10px;
+  display:flex; gap:6px; flex-wrap:wrap;
+}
+.badge{
+  font-size:10px;
+  line-height:1;
+  padding:4px 6px;
+  border-radius:999px;
+  border:1px solid var(--ring);
+  background:#141821cc;
+  backdrop-filter: blur(6px);
+}
+.badge-new{outline:2px solid var(--accent)}
+.badge-rec{outline:2px solid var(--accent-2)}
+
+
 
 
 /* ===== LAYOUT ===== */
@@ -150,6 +186,22 @@ body{
   color:var(--muted);
   font-size:13px;
 }
+
+.album-header{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:12px; margin-bottom:10px;
+}
+.album-header h2{margin:0}
+.album-meta{
+  display:flex; align-items:center; gap:8px;
+  color:var(--muted); font-size:13px;
+}
+.dot-sep{opacity:.7}
+.play-album-btn{
+  display:inline-flex; align-items:center; gap:8px;
+  font-weight:600;
+}
+
 
 /* player */
 .player-panel{

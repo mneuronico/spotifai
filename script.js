@@ -22,6 +22,9 @@ const els = {
   curTime: document.getElementById('curTime'),
   durTime: document.getElementById('durTime'),
   vol: document.getElementById('vol'),
+  sortMode: document.getElementById('sortMode'),
+  playAlbumBtn: document.getElementById('playAlbumBtn'),
+  albumRelease: document.getElementById('albumRelease'),
 };
 
 let state = {
@@ -32,6 +35,8 @@ let state = {
   shuffledIndices: null,
   isShuffle: false,
   isLoop: false,
+  sortMode: 'added_desc',
+  today: new Date(),
 };
 
 function pad(n){return String(Math.floor(n)).padStart(2,'0');}
@@ -41,6 +46,41 @@ function fmtTime(sec){
   return `${m}:${String(s).padStart(2,'0')}`;
 }
 function encodePath(p){ return encodeURI(p).replace(/#/g, '%23'); }
+
+// --- URL & Slug helpers ---
+function slugify(str){
+  return (str || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // quita acentos
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')                     // separadores
+    .replace(/^-+|-+$/g, '');                        // bordes
+}
+function albumSlug(album){ return slugify(album.title); }
+
+function getAlbumSlugFromUrl(){
+  try{
+    const u = new URL(location.href);
+    return u.searchParams.get('album');
+  }catch{ return null; }
+}
+function setAlbumSlugInUrl(slug, {replace=false} = {}){
+  try{
+    const u = new URL(location.href);
+    if (slug) u.searchParams.set('album', slug);
+    else u.searchParams.delete('album');
+    const newUrl = u.pathname + u.search + u.hash;
+    if (replace) history.replaceState({}, '', newUrl);
+    else history.pushState({}, '', newUrl);
+  }catch{}
+}
+function findAlbumIndexBySlug(slug){
+  if (!slug) return -1;
+  return state.albums.findIndex(a => albumSlug(a) === slug);
+}
+
+// Flag para evitar bucles cuando seleccionamos por popstate/URL
+let suppressUrlUpdate = false;
+
 
 function hashH(str){
   // simple 32-bit hash → hue 0..359
@@ -82,6 +122,29 @@ function albumCoverUrl(album){
   if (album.coverExists) return encodePath(`${album.folder}/cover.png`);
   return makePlaceholderDataURL(album.title);
 }
+
+function parseDateYYYYMMDD(s){
+  if (typeof s !== 'string') return null;
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  const d = new Date(Date.UTC(+m[1], +m[2]-1, +m[3]));
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function daysBetweenUTC(a,b){
+  const ms = (Date.UTC(a.getUTCFullYear(),a.getUTCMonth(),a.getUTCDate()) -
+              Date.UTC(b.getUTCFullYear(),b.getUTCMonth(),b.getUTCDate()));
+  return Math.round(ms/86400000);
+}
+
+function isNewByDateAdded(date_added_str, today){
+  const d = parseDateYYYYMMDD(date_added_str);
+  if (!d) return false;
+  const t = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+  const diff = Math.abs(daysBetweenUTC(d, t));
+  return diff <= 14;
+}
+
 
 function isNothingPlaying(){
   // “nada sonando” = audio pausado y sin haber avanzado
@@ -129,12 +192,23 @@ function renderCarousel(){
     card.className = 'carousel-card';
     card.setAttribute('aria-label', `Select album ${alb.title}`);
 
+    // Badges (NEW / Recommended)
+    const badgesWrap = document.createElement('div');
+    badgesWrap.className = 'badges';
+    const newFlag = isNewByDateAdded(alb.date_added, state.today);
+    if (newFlag){
+      const b = document.createElement('span'); b.className='badge badge-new'; b.textContent='NEW';
+      badgesWrap.appendChild(b);
+    }
+    if (alb.recommended){
+      const b = document.createElement('span'); b.className='badge badge-rec'; b.textContent='Recommended';
+      badgesWrap.appendChild(b);
+    }
+
     card.addEventListener('click', ()=>{
       selectAlbum(idx);
       const hasTracks = state.albums[idx]?.tracks?.length;
-      if (hasTracks && isNothingPlaying()) {
-        startPlayingAt(idx, 0);
-      }
+      if (hasTracks && isNothingPlaying()) startPlayingAt(idx, 0);
     });
 
     card.addEventListener('keydown', (e)=>{
@@ -142,9 +216,7 @@ function renderCarousel(){
         e.preventDefault();
         selectAlbum(idx);
         const hasTracks = state.albums[idx]?.tracks?.length;
-        if (hasTracks && isNothingPlaying()) {
-          startPlayingAt(idx, 0);
-        }
+        if (hasTracks && isNothingPlaying()) startPlayingAt(idx, 0);
       }
     });
 
@@ -160,12 +232,14 @@ function renderCarousel(){
     const sub = document.createElement('div');
     sub.className = 'carousel-sub';
     const countTxt = `${alb.tracks.length} track${alb.tracks.length!==1?'s':''}`;
-    sub.textContent = alb.artist ? `${countTxt} • ${alb.artist}` : countTxt;
+    const artistTxt = alb.artist ? `${countTxt} • ${alb.artist}` : countTxt;
+    sub.textContent = artistTxt;
 
-    card.append(img, title, sub);
+    card.append(badgesWrap, img, title, sub);
     els.carousel.appendChild(card);
   });
 }
+
 
 /* === NAVEGACIÓN ESTÁNDAR CON scroll-snap + scrollIntoView ===
    Usa rectángulos (viewport real) para decidir el card visible y moverse
@@ -206,33 +280,138 @@ function attachCarouselArrowHandlers(){
   els.carouselNext.addEventListener('click', scrollToNextCard);
 }
 
+async function getAudioDurationFromUrl(url){
+  return new Promise((resolve) => {
+    const a = new Audio();
+    a.preload = 'metadata';
+    a.src = url;
+    // Importante para evitar que algunos navegadores intenten “autoplay”
+    a.addEventListener('loadedmetadata', () => {
+      const d = Number.isFinite(a.duration) ? Math.round(a.duration) : null;
+      resolve(d);
+    });
+    a.addEventListener('error', () => resolve(null));
+  });
+}
+
+async function fillMissingDurationsForAlbum(albumIdx){
+  const album = state.albums[albumIdx];
+  if (!album) return;
+
+  for (let tIdx = 0; tIdx < album.tracks.length; tIdx++){
+    const track = album.tracks[tIdx];
+    if (track.duration != null) continue; // ya tenemos duración
+
+    const src = encodePath(`${album.folder}/${track.base}.mp3`);
+    const dur = await getAudioDurationFromUrl(src);
+    if (dur != null){
+      track.duration = dur;
+
+      // Si el álbum seleccionado es este, actualizamos el DOM de esa fila
+      if (state.selectedAlbumIdx === albumIdx){
+        const li = els.trackList.querySelector(`.track[data-index="${tIdx}"] .duration`);
+        if (li) li.textContent = fmtTime(dur);
+      }
+    }
+  }
+}
+
+
 function selectAlbum(idx){
   state.selectedAlbumIdx = idx;
   const album = state.albums[idx];
+  if (!album) return;
+
+  // 1) Título
   els.albumTitle.textContent = album.title;
 
-  // artista en el panel de temas
+  // 2) Artista (si no viene, deja guion largo)
   const artistTxt = album.artist || '—';
   const artistEl = document.getElementById('albumArtist');
   if (artistEl) artistEl.textContent = artistTxt;
 
+  // 3) Header con fecha y botón "Play álbum"
+  //    Creamos/reciclamos una fila encima de la lista de tracks para: [fecha] [botón Play]
+  const tracksPanel = els.trackList?.closest('.tracks-panel') || els.trackList.parentElement;
+  let headerRow = document.getElementById('albumHeaderRow');
+  if (!headerRow) {
+    headerRow = document.createElement('div');
+    headerRow.id = 'albumHeaderRow';
+    headerRow.className = 'album-header-row';
+    // Insertamos la fila justo antes de la lista de tracks
+    tracksPanel.insertBefore(headerRow, els.trackList);
+  }
+
+  // Fecha de lanzamiento leída del manifest (si existe)
+  // Formato esperado en manifest/meta.json: YYYY-MM-DD
+  const releaseDate = album.date_released || null;
+
+  // Creamos/actualizamos contenido del headerRow
+  headerRow.innerHTML = '';
+  const leftMeta = document.createElement('div');
+  leftMeta.className = 'album-meta-left';
+
+  const artistLine = document.createElement('div');
+  artistLine.className = 'album-meta-artist';
+  artistLine.textContent = artistTxt;
+
+  const dateLine = document.createElement('div');
+  dateLine.className = 'album-meta-date';
+  dateLine.id = 'albumDate';
+  dateLine.textContent = releaseDate ? `Release: ${releaseDate}` : '';
+
+  leftMeta.appendChild(artistLine);
+  leftMeta.appendChild(dateLine);
+
+  const rightActions = document.createElement('div');
+  rightActions.className = 'album-meta-actions';
+
+  const playBtn = document.createElement('button');
+  playBtn.id = 'btnPlayAlbum';
+  playBtn.className = 'btn primary';
+  playBtn.type = 'button';
+  playBtn.title = 'Reproducir álbum';
+  playBtn.innerHTML = `
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
+    <span style="margin-left:6px">Play álbum</span>
+  `;
+  playBtn.addEventListener('click', () => {
+    // reproducir desde la pista 1
+    if (album.tracks.length > 0) startPlayingAt(idx, 0);
+  });
+
+  rightActions.appendChild(playBtn);
+
+  headerRow.appendChild(leftMeta);
+  headerRow.appendChild(rightActions);
+
+  // 4) Lista de pistas
   els.trackList.innerHTML = '';
-  album.tracks.forEach((t, tIdx)=>{
+  album.tracks.forEach((t, tIdx) => {
     const li = document.createElement('li');
     li.className = 'track';
     li.dataset.index = tIdx;
-    li.addEventListener('click', ()=> {
+    li.addEventListener('click', () => {
       startPlayingAt(idx, tIdx);
     });
 
-    const num = document.createElement('div'); num.className='num'; num.textContent = pad(t.number);
-    const title = document.createElement('div'); title.className = 'title'; title.textContent = t.title;
-    const dur = document.createElement('div'); dur.className='duration'; dur.textContent = t.duration? fmtTime(t.duration): '—';
+    const num = document.createElement('div');
+    num.className = 'num';
+    num.textContent = pad(t.number);
+
+    const title = document.createElement('div');
+    title.className = 'title';
+    title.textContent = t.title;
+
+    const dur = document.createElement('div');
+    dur.className = 'duration';
+    dur.textContent = (typeof t.duration === 'number') ? fmtTime(t.duration) : '—';
 
     li.append(num, title, dur);
     els.trackList.appendChild(li);
   });
-  
+
+  // 5) Si no hay nada sonando, pre-cargamos el primer tema para el panel "Now Playing"
   if (isNothingPlaying()) {
     const first = album.tracks[0];
     if (first) {
@@ -241,25 +420,37 @@ function selectAlbum(idx){
       els.nowAlbum.textContent = albumLabel;
       els.nowCover.src = trackCoverUrl(album, first);
 
-      // opcional: precargar metadata sin reproducir
       const src = encodePath(`${album.folder}/${first.base}.mp3`);
       const abs = (new URL(src, location.href)).href;
       if (els.audio.src !== abs) els.audio.src = src;
     } else {
-      // si el álbum no tiene temas, al menos mostrar portada de álbum/placeholder
+      // álbum vacío: al menos mostrar portada o placeholder
       els.nowAlbum.textContent = album.artist ? `${album.title} — ${album.artist}` : album.title;
       els.nowSong.textContent = '—';
       els.nowCover.src = albumCoverUrl(album);
     }
   } else {
-    // si ya hay algo sonando, no tocar el panel "Now Playing"
+    // Si ya hay algo sonando, no pisamos el "Now Playing"
+    // Solo aseguramos que el texto del álbum no quede vacío en UI inicial
     const albumLabel = album.artist ? `${album.title} — ${album.artist}` : album.title;
     els.nowAlbum.textContent = els.nowAlbum.textContent || albumLabel;
   }
 
+  // 5.5) URL shareable: ?album=<slug>
+  if (!suppressUrlUpdate) {
+    setAlbumSlugInUrl(albumSlug(album));
+  }
+
+  // 6) UI: resaltar pista actual y estados del carrusel
   highlightCurrentTrack();
   updateCarouselIndicators();
+
+  // 7) Fallback: completar duraciones que falten (si implementaste fillMissingDurationsForAlbum)
+  if (typeof fillMissingDurationsForAlbum === 'function') {
+    fillMissingDurationsForAlbum(idx);
+  }
 }
+
 
 
 function highlightCurrentTrack(){
@@ -386,6 +577,48 @@ function attachEvents(){
 
 }
 
+const cmp = {
+  title_asc: (a,b)=> a.title.localeCompare(b.title, undefined, {sensitivity:'base'}),
+  artist_asc: (a,b)=> (a.artist||'').localeCompare((b.artist||''), undefined, {sensitivity:'base'}) || a.title.localeCompare(b.title),
+  tracks_desc: (a,b)=> (b.tracks.length - a.tracks.length) || a.title.localeCompare(b.title),
+  released_desc: (a,b)=> {
+    const da = parseDateYYYYMMDD(a.date_released), db = parseDateYYYYMMDD(b.date_released);
+    if (da && db) return db - da;
+    if (db) return 1;
+    if (da) return -1;
+    return a.title.localeCompare(b.title);
+  },
+  added_desc: (a,b)=> {
+    const da = parseDateYYYYMMDD(a.date_added), db = parseDateYYYYMMDD(b.date_added);
+    if (da && db) return db - da;
+    if (db) return 1;
+    if (da) return -1;
+    return a.title.localeCompare(b.title);
+  },
+  recommended_first: (a,b)=> {
+    if (a.recommended && !b.recommended) return -1;
+    if (!a.recommended && b.recommended) return 1;
+    // dentro de cada grupo, por date_added desc
+    return cmp.added_desc(a,b);
+  }
+};
+
+function sortAlbumsInPlace(mode){
+  const current = state.albums[state.playingAlbumIdx]?.id || null;
+  const selected = state.albums[state.selectedAlbumIdx]?.id || null;
+
+  state.albums.sort(cmp[mode] || cmp.added_desc);
+
+  // re-map índices después de ordenar
+  function idxById(id){
+    if (!id) return -1;
+    return state.albums.findIndex(a => a.id === id);
+  }
+  state.playingAlbumIdx = idxById(current);
+  state.selectedAlbumIdx = idxById(selected);
+}
+
+
 async function loadManifest(){
   const res = await fetch(manifestUrl);
   if (!res.ok) throw new Error('manifest.json not found. run the generator.');
@@ -420,8 +653,33 @@ async function loadManifest(){
     renderCarousel();
     attachCarouselArrowHandlers();
 
-    // Auto-select first album if available
-    if (state.albums.length) selectAlbum(0);
+    // URL -> abrir álbum si viene ?album=<slug>
+    const slug = getAlbumSlugFromUrl();
+    let initIdx = findAlbumIndexBySlug(slug);
+
+    if (initIdx === -1 && state.albums.length) initIdx = 0;
+
+    if (initIdx !== -1){
+      suppressUrlUpdate = true;     // no volvemos a empujar estado al setearlo desde URL
+      selectAlbum(initIdx);
+      suppressUrlUpdate = false;
+      // Aseguramos que la URL quede normalizada (si no había param o venía roto)
+      if (!slug || slug !== albumSlug(state.albums[initIdx])) {
+        setAlbumSlugInUrl(albumSlug(state.albums[initIdx]), {replace:true});
+      }
+    }
+
+    // Soporte para botón Atrás/Adelante del navegador
+    window.addEventListener('popstate', () => {
+      const s = getAlbumSlugFromUrl();
+      const idx = findAlbumIndexBySlug(s);
+      if (idx !== -1){
+        suppressUrlUpdate = true;
+        selectAlbum(idx);
+        suppressUrlUpdate = false;
+      }
+    });
+
   }catch(err){
     console.error(err);
     document.querySelector('.content').innerHTML = `

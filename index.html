@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SpotifAI</title>
 
-  <link rel="icon" href="favicon-transparent.svg" type="image/svg+xml">
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-transparent.png">
 
   <!-- Tell mobile browsers we’re a dark UI so controls/text render correctly -->
@@ -23,20 +22,48 @@
   <main>
     <!-- Album Carousel -->
     <section class="carousel-section">
+      <div class="sort-bar">
+        <label for="sortMode">Ordenar por</label>
+        <select id="sortMode">
+          <option value="added_desc">Más nuevos por “date added” (default)</option>
+          <option value="released_desc">Más nuevos por “release date”</option>
+          <option value="title_asc">Título (A→Z)</option>
+          <option value="artist_asc">Artista (A→Z)</option>
+          <option value="tracks_desc">Cantidad de canciones (desc)</option>
+          <option value="recommended_first">Recomendados primero</option>
+        </select>
+      </div>
+
       <button class="carousel-nav left" id="carouselPrev" aria-label="Previous albums">
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
+
       <div class="carousel" id="albumCarousel" aria-label="Album carousel" tabindex="0"></div>
+
       <button class="carousel-nav right" id="carouselNext" aria-label="Next albums">
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
     </section>
 
+
     <!-- Album + Player -->
     <section class="content">
       <div class="tracks-panel">
-        <h2 id="albumTitle">Select an album</h2>
-        <div id="albumArtist" class="album-artist">—</div>
+        <div class="album-header">
+          <div>
+            <h2 id="albumTitle">Select an album</h2>
+            <div class="album-meta">
+              <span id="albumArtist" class="album-artist">—</span>
+              <span class="dot-sep">•</span>
+              <span id="albumRelease" class="album-release">—</span>
+            </div>
+          </div>
+          <button id="playAlbumBtn" class="btn primary play-album-btn" title="Play album">
+            <svg viewBox="0 0 24 24" width="22" height="22"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
+            <span>Play album</span>
+          </button>
+        </div>
+
         <ul id="trackList" class="track-list" role="list"></ul>
       </div>
 
@@ -87,7 +114,7 @@
   </main>
 
   <footer class="site-footer">
-    <span>Made for albums in folders • static • GitHub Pages ready</span>
+    <span>Nicolás Martorell • 2025</span>
   </footer>
 
   <script src="script.js" defer></script>
