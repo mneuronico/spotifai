@@ -36,7 +36,7 @@ let state = {
   shuffledIndices: null,
   isShuffle: false,
   isLoop: false,
-  sortMode: 'added_desc',
+  sortMode: 'recommended_first',
   today: new Date(),
 };
 
@@ -198,11 +198,11 @@ function renderCarousel(){
     badgesWrap.className = 'badges';
     const newFlag = isNewByDateAdded(alb.date_added, state.today);
     if (newFlag){
-      const b = document.createElement('span'); b.className='badge badge-new'; b.textContent='NEW';
+      const b = document.createElement('span'); b.className='badge badge-new'; b.textContent='NUEVO';
       badgesWrap.appendChild(b);
     }
     if (alb.recommended){
-      const b = document.createElement('span'); b.className='badge badge-rec'; b.textContent='Recommended';
+      const b = document.createElement('span'); b.className='badge badge-rec'; b.textContent='Recomendado';
       badgesWrap.appendChild(b);
     }
 
@@ -603,8 +603,7 @@ async function loadManifest(){
     attachEvents();
     await loadManifest();
 
-    // sort default (más nuevos por date_added)
-    state.sortMode = 'added_desc';
+    state.sortMode = 'recommended_first';
     applySortAndRender();
 
     attachCarouselArrowHandlers();
@@ -614,17 +613,13 @@ async function loadManifest(){
       els.sortMode.value = state.sortMode;
       els.sortMode.addEventListener('change', () => {
         state.sortMode = els.sortMode.value;
-        // recordar cuál está seleccionado para mantener foco/visibilidad
         const selId = state.albums[state.selectedAlbumIdx]?.id || null;
         applySortAndRender();
-
-        // mantener seleccionada la misma tarjeta si existe aún
         if (selId){
           const idx = state.albums.findIndex(a => a.id === selId);
           if (idx !== -1){
             state.selectedAlbumIdx = idx;
             updateCarouselIndicators();
-            // opcional: scrollear hacia la tarjeta visible
             scrollToCard(idx);
           }
         }
