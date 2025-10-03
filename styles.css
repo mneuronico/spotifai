@@ -199,10 +199,6 @@ body{
   color:var(--muted); font-size:13px;
 }
 .dot-sep{opacity:.7}
-.play-album-btn{
-  display:inline-flex; align-items:center; gap:8px;
-  font-weight:600;
-}
 
 
 /* player */
@@ -226,6 +222,31 @@ body{
 .btn:hover{filter:brightness(1.06)}
 .btn[aria-pressed="true"]{outline:2px solid var(--accent)}
 .btn.primary{padding:10px 12px;font-weight:600;border-color:#324056;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+
+/* Botón circular icon-only para el header del álbum */
+.btn-circle{
+  width:44px;
+  height:44px;
+  padding:0;                 /* anula padding de .btn/.primary */
+  border-radius:999px;
+  display:grid;
+  place-items:center;
+}
+
+/* Opcional: agranda un poquito en desktop */
+@media (min-width: 900px){
+  .btn-circle{ width:48px; height:48px; }
+}
+
+/* Hover/focus un poco más marcado para icon-only */
+.btn-circle:hover{
+  filter:brightness(1.07);
+}
+.btn-circle:focus-visible{
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+}
+
 
 .seek-wrap{margin:6px 0 10px}
 .seek-wrap input[type="range"]{width:100%}
