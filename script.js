@@ -350,9 +350,15 @@ function selectAlbum(idx){
   els.albumArtist.textContent = album.artist || '—';
   els.albumRelease.textContent = album.date_released || '—';
 
+  // Ocultar el separador si no hay fecha de lanzamiento
+  const dot = document.querySelector('.album-meta .dot-sep');
+  if (dot) dot.style.display = (album.date_released ? '' : 'none');
+
   // Botón "Play album" (NO crear otro, reutilizamos el existente)
   if (els.playAlbumBtn){
     els.playAlbumBtn.onclick = () => {
+      // Si veníamos de compartir un track, limpiamos el param ?track
+      clearTrackFromUrl({ replace: true });
       if (album.tracks.length > 0) startPlayingAt(idx, 0);
     };
   }
