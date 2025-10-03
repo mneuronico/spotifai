@@ -294,6 +294,12 @@ function scrollToCard(index){
 function scrollToNextCard(){ scrollToCard(getVisibleCardIndex() + 1); }
 function scrollToPrevCard(){ scrollToCard(getVisibleCardIndex() - 1); }
 
+function scrollCarouselToStart(){
+  if (!els.carousel) return;
+  // forzamos al inicio sin animación
+  els.carousel.scrollTo({ left: 0, top: 0, behavior: 'auto' });
+}
+
 /* === LISTENERS DE LAS FLECHAS ===
    Reemplazá las líneas que antes hacían scrollBy({left:±400,...})f
    por estas dos:
@@ -596,6 +602,8 @@ function sortAlbumsInPlace(mode){
 function applySortAndRender(){
   sortAlbumsInPlace(state.sortMode || 'added_desc');
   renderCarousel();
+  // después de re-render, siempre volver al inicio del carrusel
+  scrollCarouselToStart();
   updateCarouselIndicators();
 }
 
@@ -652,7 +660,6 @@ async function loadManifest(){
           if (idx !== -1){
             state.selectedAlbumIdx = idx;
             updateCarouselIndicators();
-            scrollToCard(idx);
           }
         }
       });
