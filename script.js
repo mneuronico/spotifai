@@ -1,5 +1,6 @@
 /* global fetch */
 const manifestUrl = 'manifest.json';
+const defaultDocumentTitle = document.title || 'SpotifAI';
 
 const els = {
   carousel: document.getElementById('albumCarousel'),
@@ -26,6 +27,7 @@ const els = {
   playAlbumBtn: document.getElementById('playAlbumBtn'),
   albumRelease: document.getElementById('albumRelease'),
   albumArtist: document.getElementById('albumArtist'),
+  surpriseBtn: document.getElementById('surpriseBtn'),
 };
 
 let state = {
@@ -38,7 +40,17 @@ let state = {
   isLoop: false,
   sortMode: 'recommended_first',
   today: new Date(),
+  globalQueue: null,
+  globalQueuePos: -1,
 };
+
+function updateDocumentTitle(track, album){
+  if (track && album){
+    document.title = `${track.title} - ${album.title} - spotifAI`;
+  } else {
+    document.title = defaultDocumentTitle;
+  }
+}
 
 function pad(n){return String(Math.floor(n)).padStart(2,'0');}
 function fmtTime(sec){
@@ -179,7 +191,20 @@ function isNothingPlaying(){
   return els.audio.paused && (els.audio.currentTime === 0);
 }
 
-function startPlayingAt(albumIdx, trackIdx){
+function startPlayingAt(albumIdx, trackIdx, options = {}){
+  const queue = Array.isArray(options.queue) && options.queue.length ? options.queue : null;
+  const queuePos = typeof options.queuePos === 'number' ? options.queuePos : -1;
+
+  if (queue){
+    state.globalQueue = queue;
+    const len = queue.length;
+    const normalized = ((queuePos % len) + len) % len;
+    state.globalQueuePos = normalized;
+  } else {
+    state.globalQueue = null;
+    state.globalQueuePos = -1;
+  }
+
   state.playingAlbumIdx = albumIdx;
   state.playingTrackIdx = trackIdx;
   state.selectedAlbumIdx = (state.selectedAlbumIdx === -1 ? albumIdx : state.selectedAlbumIdx);
@@ -187,6 +212,8 @@ function startPlayingAt(albumIdx, trackIdx){
 
   const album = state.albums[albumIdx];
   const track = album.tracks[trackIdx];
+
+  updateDocumentTitle(track, album);
 
   // UI: player
   const albumLabel = album.artist ? `${album.title} — ${album.artist}` : album.title;
@@ -444,6 +471,45 @@ function highlightCurrentTrack(){
   }
 }
 
+function hasGlobalQueue(){
+  return Array.isArray(state.globalQueue) && state.globalQueue.length > 0;
+}
+
+function playGlobalQueueAt(pos){
+  if (!hasGlobalQueue()) return false;
+  const len = state.globalQueue.length;
+  if (!len) return false;
+  const normalized = ((pos % len) + len) % len;
+  const entry = state.globalQueue[normalized];
+  if (!entry) return false;
+
+  if (state.selectedAlbumIdx !== entry.albumIdx){
+    const prev = suppressUrlUpdate;
+    suppressUrlUpdate = true;
+    selectAlbum(entry.albumIdx);
+    suppressUrlUpdate = prev;
+  }
+
+  startPlayingAt(entry.albumIdx, entry.trackIdx, { queue: state.globalQueue, queuePos: normalized });
+  const album = state.albums[entry.albumIdx];
+  if (album) setAlbumSlugInUrl(albumSlug(album), {replace:true});
+  const track = album?.tracks?.[entry.trackIdx];
+  if (track) setTrackSlugInUrl(trackSlug(track), {replace:true});
+  return true;
+}
+
+function playGlobalNext(){
+  if (!hasGlobalQueue()) return false;
+  const current = state.globalQueuePos >= 0 ? state.globalQueuePos : 0;
+  return playGlobalQueueAt(current + 1);
+}
+
+function playGlobalPrev(){
+  if (!hasGlobalQueue()) return false;
+  const current = state.globalQueuePos >= 0 ? state.globalQueuePos : 0;
+  return playGlobalQueueAt(current - 1);
+}
+
 function nextIndex(){
   const album = state.albums[state.playingAlbumIdx];
   if (!album) return 0;
@@ -478,6 +544,7 @@ function prevIndex(){
 }
 
 function playNext(){
+  if (playGlobalNext()) return;
   const album = state.albums[state.playingAlbumIdx];
   if (!album) return;
   const nextIdx = nextIndex();
@@ -485,6 +552,7 @@ function playNext(){
 }
 
 function playPrev(){
+  if (playGlobalPrev()) return;
   const album = state.albums[state.playingAlbumIdx];
   if (!album) return;
   const prevIdx = prevIndex();
@@ -522,6 +590,38 @@ function attachEvents(){
     els.btnLoop.setAttribute('aria-pressed', String(state.isLoop));
   });
 
+  if (els.surpriseBtn){
+    els.surpriseBtn.addEventListener('click', ()=>{
+      const queue = [];
+      state.albums.forEach((album, albumIdx)=>{
+        album.tracks.forEach((_, trackIdx)=>{
+          queue.push({ albumIdx, trackIdx });
+        });
+      });
+      if (!queue.length) return;
+
+      for (let i = queue.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [queue[i], queue[j]] = [queue[j], queue[i]];
+      }
+
+      const first = queue[0];
+      if (typeof first.albumIdx !== 'number' || typeof first.trackIdx !== 'number') return;
+
+      const prev = suppressUrlUpdate;
+      suppressUrlUpdate = true;
+      selectAlbum(first.albumIdx);
+      suppressUrlUpdate = prev;
+
+      startPlayingAt(first.albumIdx, first.trackIdx, { queue, queuePos: 0 });
+
+      const album = state.albums[first.albumIdx];
+      if (album) setAlbumSlugInUrl(albumSlug(album), {replace:true});
+      const track = album?.tracks?.[first.trackIdx];
+      if (track) setTrackSlugInUrl(trackSlug(track), {replace:true});
+    });
+  }
+
   els.audio.addEventListener('timeupdate', ()=>{
     const p = (els.audio.currentTime / (els.audio.duration || 1)) * 100;
     els.seek.value = isFinite(p) ? p : 0;
@@ -540,6 +640,8 @@ function attachEvents(){
       els.audio.currentTime = 0; els.audio.play().catch(()=>{});
       return;
     }
+
+    if (playGlobalNext()) return;
 
     const album = state.albums[state.playingAlbumIdx];
     if (!album) return;
