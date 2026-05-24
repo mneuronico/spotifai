@@ -5,11 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SpotifAI</title>
 
-  <link rel="icon" type="image/png" sizes="32x32" href="favicon-transparent.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
   <!-- Tell mobile browsers we’re a dark UI so controls/text render correctly -->
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#0f1115" />
+
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SpotifAI">
 
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -125,5 +133,12 @@
   </footer>
 
   <script src="script.js" defer></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("sw.js").catch(() => {});
+      });
+    }
+  </script>
 </body>
 </html>

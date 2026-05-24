@@ -39,6 +39,8 @@ jobs:
           cp -r favicon.png dist/
           cp -r favicon-transparent.png dist/
           cp CNAME dist/
+          cp manifest.webmanifest sw.js dist/
+          cp icon-192.png icon-512.png apple-touch-icon.png favicon-32.png dist/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
