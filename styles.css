@@ -289,3 +289,65 @@ body{
 .volume-row input[type="range"]{flex:1}
 
 .site-footer{padding:20px;text-align:center;color:var(--muted);font-size:12px}
+
+/* ===== Buffering spinner (icono del botón Play/Pause) ===== */
+.spinner{
+  animation: spotifai-spin 0.9s linear infinite;
+  transform-origin: 50% 50%;
+}
+@keyframes spotifai-spin{
+  to{ transform: rotate(360deg); }
+}
+
+/* ===== Repeat button: tres estados (off / all / one) ===== */
+#btnLoop{ position: relative; }
+#btnLoop[data-repeat-mode="all"]{
+  outline: 2px solid var(--accent);
+  color: var(--accent);
+}
+#btnLoop[data-repeat-mode="one"]{
+  outline: 2px solid var(--accent-2);
+  color: var(--accent-2);
+}
+#btnLoop[data-repeat-mode="one"]::after{
+  content: "1";
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: var(--accent-2);
+  color: #0f1115;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--bg);
+}
+
+/* ===== Toast (notice de pista no disponible, etc.) ===== */
+.toast{
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%) translateY(20px);
+  background: #1c2230;
+  color: var(--text);
+  border: 1px solid var(--ring);
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-size: 13px;
+  max-width: 90vw;
+  box-shadow: 0 10px 30px rgba(0,0,0,.45);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s ease, transform .2s ease;
+  z-index: 100;
+}
+.toast.is-visible{
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.toast[hidden]{ display: none; }

@@ -15,6 +15,8 @@ const els = {
   btnPlayPause: document.getElementById('btnPlayPause'),
   iconPlay: document.getElementById('iconPlay'),
   iconPause: document.getElementById('iconPause'),
+  iconBuffering: document.getElementById('iconBuffering'),
+  toast: document.getElementById('toast'),
   btnPrev: document.getElementById('btnPrev'),
   btnNext: document.getElementById('btnNext'),
   btnShuffle: document.getElementById('btnShuffle'),
@@ -37,12 +39,30 @@ let state = {
   playingTrackIdx: -1,
   shuffledIndices: null,
   isShuffle: false,
-  isLoop: false,
+  repeatMode: 'off',          // 'off' | 'all' | 'one' — default 'off' = paramos al final de la biblioteca (igual que Spotify/Apple Music)
+  isBuffering: false,         // true durante stalls/`waiting`, oculta el play/pause y muestra spinner
+  isSeeking: false,           // true mientras el usuario arrastra el seek slider; suprime el writeback de timeupdate
   sortMode: 'recommended_first',
   today: new Date(),
   globalQueue: null,
   globalQueuePos: -1,
 };
+
+// === Toast ===
+let toastTimer = null;
+function showToast(msg, durationMs = 2400){
+  if (!els.toast) return;
+  els.toast.textContent = msg;
+  els.toast.hidden = false;
+  // Force reflow para que la transición arranque
+  void els.toast.offsetWidth;
+  els.toast.classList.add('is-visible');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    els.toast.classList.remove('is-visible');
+    setTimeout(() => { els.toast.hidden = true; }, 220);
+  }, durationMs);
+}
 
 function updateDocumentTitle(track, album){
   if (track && album){
@@ -230,6 +250,77 @@ function startPlayingAt(albumIdx, trackIdx, options = {}){
   updatePlayIcon();
   highlightCurrentTrack();
   updateCarouselIndicators();
+  updateMediaSessionMetadata();
+}
+
+// === Media Session API ===
+function updateMediaSessionMetadata(){
+  if (!('mediaSession' in navigator)) return;
+  const album = state.albums[state.playingAlbumIdx];
+  const track = album && album.tracks[state.playingTrackIdx];
+  if (!album || !track){
+    try { navigator.mediaSession.metadata = null; } catch {}
+    return;
+  }
+  try {
+    const artworkUrl = trackCoverUrl(album, track);
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: track.title || '',
+      artist: album.artist || '',
+      album: album.title || '',
+      artwork: [
+        { src: artworkUrl, sizes: '512x512', type: 'image/png' },
+        { src: artworkUrl, sizes: '256x256', type: 'image/png' },
+        { src: artworkUrl, sizes: '128x128', type: 'image/png' },
+      ],
+    });
+  } catch {}
+}
+function updateMediaSessionPlaybackState(){
+  if (!('mediaSession' in navigator)) return;
+  try {
+    navigator.mediaSession.playbackState = els.audio.paused ? 'paused' : 'playing';
+  } catch {}
+}
+function updateMediaSessionPosition(){
+  if (!('mediaSession' in navigator) || !('setPositionState' in navigator.mediaSession)) return;
+  const d = els.audio.duration;
+  if (!isFinite(d) || d <= 0) return;
+  try {
+    navigator.mediaSession.setPositionState({
+      duration: d,
+      playbackRate: els.audio.playbackRate || 1,
+      position: Math.min(Math.max(els.audio.currentTime, 0), d),
+    });
+  } catch {}
+}
+function setupMediaSessionHandlers(){
+  if (!('mediaSession' in navigator)) return;
+  const set = (action, handler) => {
+    try { navigator.mediaSession.setActionHandler(action, handler); } catch {}
+  };
+  set('play', () => { els.audio.play().catch(()=>{}); });
+  set('pause', () => { els.audio.pause(); });
+  set('nexttrack', () => { playNext(); });
+  set('previoustrack', () => { playPrev(); });
+  set('seekbackward', (e) => {
+    const offset = (e && e.seekOffset) || 10;
+    els.audio.currentTime = Math.max(0, els.audio.currentTime - offset);
+  });
+  set('seekforward', (e) => {
+    const offset = (e && e.seekOffset) || 10;
+    const d = els.audio.duration;
+    els.audio.currentTime = Math.min(isFinite(d) ? d : els.audio.currentTime + offset, els.audio.currentTime + offset);
+  });
+  set('seekto', (e) => {
+    if (!e || typeof e.seekTime !== 'number') return;
+    if (e.fastSeek && 'fastSeek' in els.audio){
+      els.audio.fastSeek(e.seekTime);
+    } else {
+      els.audio.currentTime = e.seekTime;
+    }
+  });
+  set('stop', () => { els.audio.pause(); els.audio.currentTime = 0; });
 }
 
 function updateCarouselIndicators(){
@@ -575,18 +666,35 @@ function playPrev(){
 }
 
 // Avanza después de que terminó / falló la pista actual. Devuelve true si se inició algo.
+// Respeta state.repeatMode: 'off' detiene al final de la cola/biblioteca; 'all' loopea como antes.
+// repeat-'one' se maneja arriba en el handler `ended`, no acá.
 function advanceAfterCurrent(){
-  if (playGlobalNext()) return true;
+  // Cola global (Sorpréndeme): si la cola se agotó y no hay repeat-all, parar.
+  if (hasGlobalQueue()){
+    const current = state.globalQueuePos >= 0 ? state.globalQueuePos : 0;
+    const nextPos = current + 1;
+    if (nextPos >= state.globalQueue.length && state.repeatMode !== 'all'){
+      return false;
+    }
+    return playGlobalQueueAt(nextPos);
+  }
+
   const album = state.albums[state.playingAlbumIdx];
   if (!album) return false;
+
   const isLastTrackNoShuffle = !state.isShuffle && (state.playingTrackIdx === album.tracks.length - 1);
   if (isLastTrackNoShuffle) {
+    const isLastAlbum = state.playingAlbumIdx === state.albums.length - 1;
+    if (isLastAlbum && state.repeatMode !== 'all'){
+      return false; // fin de biblioteca, sin repeat
+    }
     const nextAlbum = (state.playingAlbumIdx + 1) % state.albums.length;
     startPlayingAt(nextAlbum, 0);
-  } else {
-    const nextIdx = nextIndex();
-    startPlayingAt(state.playingAlbumIdx, nextIdx);
+    return true;
   }
+
+  const nextIdx = nextIndex();
+  startPlayingAt(state.playingAlbumIdx, nextIdx);
   return true;
 }
 
@@ -596,9 +704,25 @@ const MAX_CONSECUTIVE_PLAYBACK_ERRORS = 4;
 
 
 function updatePlayIcon(){
+  if (state.isBuffering){
+    els.iconPlay.style.display = 'none';
+    els.iconPause.style.display = 'none';
+    if (els.iconBuffering) els.iconBuffering.style.display = '';
+    return;
+  }
+  if (els.iconBuffering) els.iconBuffering.style.display = 'none';
   const playing = !els.audio.paused;
   els.iconPlay.style.display = playing ? 'none' : '';
   els.iconPause.style.display = playing ? '' : 'none';
+}
+
+const REPEAT_MODES = ['off', 'all', 'one'];
+const REPEAT_LABELS = { off: 'Repeat: off', all: 'Repeat: all', one: 'Repeat: one' };
+function updateRepeatButton(){
+  if (!els.btnLoop) return;
+  els.btnLoop.setAttribute('data-repeat-mode', state.repeatMode);
+  els.btnLoop.setAttribute('aria-pressed', String(state.repeatMode !== 'off'));
+  els.btnLoop.setAttribute('title', REPEAT_LABELS[state.repeatMode] || 'Repeat');
 }
 
 
@@ -609,7 +733,12 @@ function attachEvents(){
     else els.audio.pause();
   });
   els.audio.addEventListener('play', ()=>{ updatePlayIcon(); updateCarouselIndicators(); });
-  els.audio.addEventListener('pause', ()=>{ updatePlayIcon(); updateCarouselIndicators(); });
+  els.audio.addEventListener('pause', ()=>{
+    // Si el usuario pausa durante buffering, no nos quedamos con el spinner colgado
+    state.isBuffering = false;
+    updatePlayIcon();
+    updateCarouselIndicators();
+  });
 
   els.btnNext.addEventListener('click', playNext);
   els.btnPrev.addEventListener('click', playPrev);
@@ -621,9 +750,11 @@ function attachEvents(){
   });
 
   els.btnLoop.addEventListener('click', ()=>{
-    state.isLoop = !state.isLoop;
-    els.btnLoop.setAttribute('aria-pressed', String(state.isLoop));
+    const i = REPEAT_MODES.indexOf(state.repeatMode);
+    state.repeatMode = REPEAT_MODES[(i + 1) % REPEAT_MODES.length];
+    updateRepeatButton();
   });
+  updateRepeatButton();
 
   if (els.surpriseBtn){
     els.surpriseBtn.addEventListener('click', ()=>{
@@ -658,11 +789,26 @@ function attachEvents(){
   }
 
   els.audio.addEventListener('timeupdate', ()=>{
-    const p = (els.audio.currentTime / (els.audio.duration || 1)) * 100;
-    els.seek.value = isFinite(p) ? p : 0;
+    // Mientras el usuario está arrastrando el slider, NO le pisamos su posición:
+    // solo actualizamos los textos de tiempo y la posición del Media Session.
+    if (!state.isSeeking){
+      const p = (els.audio.currentTime / (els.audio.duration || 1)) * 100;
+      els.seek.value = isFinite(p) ? p : 0;
+    }
     els.curTime.textContent = fmtTime(els.audio.currentTime);
     els.durTime.textContent = fmtTime(els.audio.duration);
+    updateMediaSessionPosition();
   });
+  // Drag del seek: durante pointerdown→pointerup mantenemos isSeeking=true para
+  // que `timeupdate` no nos pise; el `input` sigue siendo el que mueve el audio.
+  const seekStart = () => { state.isSeeking = true; };
+  const seekEnd = () => { state.isSeeking = false; };
+  els.seek.addEventListener('pointerdown', seekStart);
+  els.seek.addEventListener('pointerup', seekEnd);
+  els.seek.addEventListener('pointercancel', seekEnd);
+  // Fallback teclado: flechas izq/der disparan `change` al soltar el foco/cambiar valor.
+  els.seek.addEventListener('keydown', seekStart);
+  els.seek.addEventListener('keyup', seekEnd);
   els.seek.addEventListener('input', ()=>{
     const t = (parseFloat(els.seek.value)/100) * (els.audio.duration || 0);
     if (isFinite(t)) els.audio.currentTime = t;
@@ -671,11 +817,16 @@ function attachEvents(){
   els.vol.addEventListener('input', ()=>{ els.audio.volume = parseFloat(els.vol.value); });
 
   els.audio.addEventListener('ended', ()=>{
-    if (state.isLoop) {
+    if (state.repeatMode === 'one') {
       els.audio.currentTime = 0; els.audio.play().catch(()=>{});
       return;
     }
-    advanceAfterCurrent();
+    const advanced = advanceAfterCurrent();
+    if (!advanced){
+      // Fin de biblioteca / cola sin repeat: paramos en seco.
+      try { els.audio.pause(); } catch {}
+      updateMediaSessionPlaybackState();
+    }
   });
 
   // Si la pista falla al cargar (404, network, decode), no nos quedamos en silencio:
@@ -687,16 +838,62 @@ function attachEvents(){
     if (state.playingAlbumIdx === -1 || state.playingTrackIdx === -1) return;
     consecutivePlaybackErrors++;
     console.warn('SpotifAI: error cargando pista', err && err.code, '— intento', consecutivePlaybackErrors);
+    // Pista que falló (la que está en `playing*Idx` ahora)
+    const failedAlbum = state.albums[state.playingAlbumIdx];
+    const failedTrack = failedAlbum && failedAlbum.tracks[state.playingTrackIdx];
+    if (failedTrack){
+      showToast(`Pista no disponible — saltando: ${failedTrack.title}`);
+    } else {
+      showToast('Pista no disponible — saltando');
+    }
     if (consecutivePlaybackErrors > MAX_CONSECUTIVE_PLAYBACK_ERRORS) {
       console.warn('SpotifAI: demasiados errores consecutivos, detengo reproducción');
       consecutivePlaybackErrors = 0;
+      showToast('Demasiados errores — reproducción detenida', 3200);
+      // Apagamos buffering por si quedó colgado
+      state.isBuffering = false;
+      updatePlayIcon();
       return;
     }
     advanceAfterCurrent();
   });
 
   // Reseteamos el contador cuando la reproducción arranca de verdad (no solo cuando se llama play())
-  els.audio.addEventListener('playing', ()=>{ consecutivePlaybackErrors = 0; });
+  els.audio.addEventListener('playing', ()=>{
+    consecutivePlaybackErrors = 0;
+    state.isBuffering = false;
+    updatePlayIcon();
+    updateMediaSessionPlaybackState();
+  });
+
+  // === Buffering UI ===
+  els.audio.addEventListener('waiting', ()=>{
+    // Solo mostramos spinner si la intención era estar sonando (no pausado a propósito).
+    if (!els.audio.paused){
+      state.isBuffering = true;
+      updatePlayIcon();
+    }
+  });
+  els.audio.addEventListener('stalled', ()=>{
+    if (!els.audio.paused){
+      state.isBuffering = true;
+      updatePlayIcon();
+    }
+  });
+  els.audio.addEventListener('canplay', ()=>{
+    state.isBuffering = false;
+    updatePlayIcon();
+  });
+  els.audio.addEventListener('loadstart', ()=>{
+    // Al cambiar de pista, asumimos buffering hasta que llegue 'playing' o 'canplay'.
+    state.isBuffering = !els.audio.paused;
+    updatePlayIcon();
+  });
+
+  // Sync del estado de Media Session cuando cambia play/pause
+  els.audio.addEventListener('play', updateMediaSessionPlaybackState);
+  els.audio.addEventListener('pause', updateMediaSessionPlaybackState);
+  els.audio.addEventListener('durationchange', updateMediaSessionPosition);
 
 }
 
@@ -783,6 +980,7 @@ async function loadManifest(){
 (async function init(){
   try{
     attachEvents();
+    setupMediaSessionHandlers();
     await loadManifest();
 
     state.sortMode = 'recommended_first';
