@@ -205,10 +205,11 @@ function startPlayingAt(albumIdx, trackIdx, options = {}){
     state.globalQueuePos = -1;
   }
 
+  const albumChanged = state.playingAlbumIdx !== albumIdx;
   state.playingAlbumIdx = albumIdx;
   state.playingTrackIdx = trackIdx;
   state.selectedAlbumIdx = (state.selectedAlbumIdx === -1 ? albumIdx : state.selectedAlbumIdx);
-  state.shuffledIndices = null; // reset cuando arranca nuevo álbum
+  if (albumChanged) state.shuffledIndices = null; // reset cuando arranca un nuevo álbum (no entre pistas del mismo álbum)
 
   const album = state.albums[albumIdx];
   const track = album.tracks[trackIdx];
@@ -547,6 +548,13 @@ function playNext(){
   if (playGlobalNext()) return;
   const album = state.albums[state.playingAlbumIdx];
   if (!album) return;
+  // En modo no-shuffle, al final del álbum saltamos al siguiente álbum
+  // (consistente con el auto-advance del evento `ended`)
+  if (!state.isShuffle && state.playingTrackIdx === album.tracks.length - 1 && state.albums.length > 1) {
+    const nextAlbum = (state.playingAlbumIdx + 1) % state.albums.length;
+    startPlayingAt(nextAlbum, 0);
+    return;
+  }
   const nextIdx = nextIndex();
   startPlayingAt(state.playingAlbumIdx, nextIdx);
 }
@@ -555,9 +563,36 @@ function playPrev(){
   if (playGlobalPrev()) return;
   const album = state.albums[state.playingAlbumIdx];
   if (!album) return;
+  // Simétrico a playNext: en el primer track, retrocedemos al último del álbum anterior
+  if (!state.isShuffle && state.playingTrackIdx === 0 && state.albums.length > 1) {
+    const prevAlbum = (state.playingAlbumIdx - 1 + state.albums.length) % state.albums.length;
+    const lastIdx = state.albums[prevAlbum].tracks.length - 1;
+    startPlayingAt(prevAlbum, Math.max(0, lastIdx));
+    return;
+  }
   const prevIdx = prevIndex();
   startPlayingAt(state.playingAlbumIdx, prevIdx);
 }
+
+// Avanza después de que terminó / falló la pista actual. Devuelve true si se inició algo.
+function advanceAfterCurrent(){
+  if (playGlobalNext()) return true;
+  const album = state.albums[state.playingAlbumIdx];
+  if (!album) return false;
+  const isLastTrackNoShuffle = !state.isShuffle && (state.playingTrackIdx === album.tracks.length - 1);
+  if (isLastTrackNoShuffle) {
+    const nextAlbum = (state.playingAlbumIdx + 1) % state.albums.length;
+    startPlayingAt(nextAlbum, 0);
+  } else {
+    const nextIdx = nextIndex();
+    startPlayingAt(state.playingAlbumIdx, nextIdx);
+  }
+  return true;
+}
+
+// Contador de fallos consecutivos para no entrar en loop infinito si toda la cola está rota
+let consecutivePlaybackErrors = 0;
+const MAX_CONSECUTIVE_PLAYBACK_ERRORS = 4;
 
 
 function updatePlayIcon(){
@@ -640,23 +675,28 @@ function attachEvents(){
       els.audio.currentTime = 0; els.audio.play().catch(()=>{});
       return;
     }
-
-    if (playGlobalNext()) return;
-
-    const album = state.albums[state.playingAlbumIdx];
-    if (!album) return;
-
-    const isLastTrackNoShuffle = !state.isShuffle && (state.playingTrackIdx === album.tracks.length - 1);
-
-    if (isLastTrackNoShuffle) {
-      // pasar al primer tema del siguiente álbum (circular)
-      const nextAlbum = (state.playingAlbumIdx + 1) % state.albums.length;
-      startPlayingAt(nextAlbum, 0);
-      // si estabas mirando el álbum que sigue, dejá la selección como está; si no, no cambiamos selected
-    } else {
-      playNext();
-    }
+    advanceAfterCurrent();
   });
+
+  // Si la pista falla al cargar (404, network, decode), no nos quedamos en silencio:
+  // saltamos a la siguiente. Limitamos los saltos para no entrar en loop si todo está roto.
+  els.audio.addEventListener('error', ()=>{
+    // Ignoramos abortos (ocurre cuando cambiamos `src` nosotros mismos antes de que termine de cargar)
+    const err = els.audio.error;
+    if (err && err.code === 1 /* MediaError.MEDIA_ERR_ABORTED */) return;
+    if (state.playingAlbumIdx === -1 || state.playingTrackIdx === -1) return;
+    consecutivePlaybackErrors++;
+    console.warn('SpotifAI: error cargando pista', err && err.code, '— intento', consecutivePlaybackErrors);
+    if (consecutivePlaybackErrors > MAX_CONSECUTIVE_PLAYBACK_ERRORS) {
+      console.warn('SpotifAI: demasiados errores consecutivos, detengo reproducción');
+      consecutivePlaybackErrors = 0;
+      return;
+    }
+    advanceAfterCurrent();
+  });
+
+  // Reseteamos el contador cuando la reproducción arranca de verdad (no solo cuando se llama play())
+  els.audio.addEventListener('playing', ()=>{ consecutivePlaybackErrors = 0; });
 
 }
 
