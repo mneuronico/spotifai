@@ -1,0 +1,999 @@
+{
+  "version": 2,
+  "generatedAt": "2026-05-24T16:13:49.275Z",
+  "albums": [
+    {
+      "id": "albums/Comecocos OST",
+      "title": "Comecocos OST",
+      "folder": "albums/Comecocos OST",
+      "coverExists": true,
+      "artist": "Nicolás Martorell, VIA TOXI",
+      "date_released": "2025-05-22",
+      "date_added": "2025-10-03",
+      "recommended": false,
+      "tracks": [
+        {
+          "number": 1,
+          "title": "Comecocos Theme",
+          "base": "01 - Comecocos Theme",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 2,
+          "title": "Misterio en acción",
+          "base": "02 - Misterio en acción",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 3,
+          "title": "Explorando el misterio",
+          "base": "03 - Explorando el misterio",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 4,
+          "title": "Misterio dramático",
+          "base": "04 - Misterio dramático",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 5,
+          "title": "Misterio decisivo",
+          "base": "05 - Misterio decisivo",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 6,
+          "title": "Reexplorando el misterio",
+          "base": "06 - Reexplorando el misterio",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 7,
+          "title": "Misterio melancólico",
+          "base": "07 - Misterio melancólico",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 8,
+          "title": "Misterio tierno",
+          "base": "08 - Misterio tierno",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 9,
+          "title": "Comecocos Theme (acústico)",
+          "base": "09 - Comecocos Theme (acústico)",
+          "pngExists": false,
+          "duration": null
+        }
+      ]
+    },
+    {
+      "id": "albums/Ginecotrash Vol I",
+      "title": "Ginecotrash Vol I",
+      "folder": "albums/Ginecotrash Vol I",
+      "coverExists": true,
+      "artist": "Benjamín Vidal",
+      "date_released": "2025-09-10",
+      "date_added": "2025-10-01",
+      "recommended": false,
+      "tracks": []
+    },
+    {
+      "id": "albums/JM Greatest Hits",
+      "title": "JM Greatest Hits",
+      "folder": "albums/JM Greatest Hits",
+      "coverExists": true,
+      "artist": "J. M. Cafferata",
+      "date_released": "2025-10-07",
+      "date_added": "2025-10-07",
+      "recommended": false,
+      "tracks": [
+        {
+          "number": 1,
+          "title": "Autotrén",
+          "base": "01 - Autotrén",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 2,
+          "title": "Pizza y Pagni Theme",
+          "base": "02 - Pizza y Pagni Theme",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 3,
+          "title": "Prototipazos",
+          "base": "03 - Prototipazos",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 4,
+          "title": "Una Serie Para Gente Cansada",
+          "base": "04 - Una Serie Para Gente Cansada",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 5,
+          "title": "Grupo GB",
+          "base": "05 - Grupo GB",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 6,
+          "title": "Monkey Adventures",
+          "base": "06 - Monkey Adventures",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 7,
+          "title": "Asante Bay Hope",
+          "base": "07 - Asante Bay Hope",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 8,
+          "title": "EL GEPETERO",
+          "base": "08 - EL GEPETERO",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 9,
+          "title": "Otro Día en la Red",
+          "base": "09 - Otro Día en la Red",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 10,
+          "title": "TOXI Travel",
+          "base": "10 - TOXI Travel",
+          "pngExists": false,
+          "duration": null
+        }
+      ]
+    },
+    {
+      "id": "albums/La Maestra Que No Se Rinde",
+      "title": "La Maestra Que No Se Rinde",
+      "folder": "albums/La Maestra Que No Se Rinde",
+      "coverExists": true,
+      "artist": "Nicolás Martorell",
+      "date_released": "2025-11-10",
+      "date_added": "2025-11-10",
+      "recommended": false,
+      "tracks": [
+        {
+          "number": 1,
+          "title": "La Maestra que No se Rinde",
+          "base": "01 - La Maestra que No se Rinde",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 2,
+          "title": "Casa con Ritmo",
+          "base": "02 - Casa con Ritmo",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 3,
+          "title": "La Escuela que Respira",
+          "base": "03 - La Escuela que Respira",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 4,
+          "title": "Ella Canta",
+          "base": "04 - Ella Canta",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 5,
+          "title": "Sesenta Años Cantando",
+          "base": "05 - Sesenta Años Cantando",
+          "pngExists": false,
+          "duration": null
+        }
+      ]
+    },
+    {
+      "id": "albums/Lucha Clandestina OST",
+      "title": "Lucha Clandestina OST",
+      "folder": "albums/Lucha Clandestina OST",
+      "coverExists": true,
+      "artist": "Xplora Ciencia",
+      "date_released": "2024-04-22",
+      "date_added": "2025-10-03",
+      "recommended": false,
+      "tracks": [
+        {
+          "number": 1,
+          "title": "Lucha Clandestina",
+          "base": "01 - Lucha Clandestina",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 2,
+          "title": "Quequén en la noche",
+          "base": "02 - Quequén en la noche",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 3,
+          "title": "El Xploratorio",
+          "base": "03 - El Xploratorio",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 4,
+          "title": "Nadie debe saber",
+          "base": "04 - Nadie debe saber",
+          "pngExists": false,
+          "duration": null
+        }
+      ]
+    },
+    {
+      "id": "albums/Pauli Bakes",
+      "title": "Pauli Bakes",
+      "folder": "albums/Pauli Bakes",
+      "coverExists": true,
+      "artist": "Nicolás Martorell",
+      "date_released": "2024-10-18",
+      "date_added": "2025-10-02",
+      "recommended": false,
+      "tracks": [
+        {
+          "number": 1,
+          "title": "Un viaje culinario",
+          "base": "01 - Un viaje culinario",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 2,
+          "title": "Delicias para disfrutar",
+          "base": "02 - Delicias para disfrutar",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 3,
+          "title": "Sueño artesanal",
+          "base": "03 - Sueño artesanal",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 4,
+          "title": "Repostería que te va a enamorar",
+          "base": "04 - Repostería que te va a enamorar",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 5,
+          "title": "Pauli Nova",
+          "base": "05 - Pauli Nova",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 6,
+          "title": "Sigue tus placeres",
+          "base": "06 - Sigue tus placeres",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 7,
+          "title": "Donde el dulce se hace pan",
+          "base": "07 - Donde el dulce se hace pan",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 8,
+          "title": "Nunca descansa",
+          "base": "08 - Nunca descansa",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 9,
+          "title": "La estrella del lugar",
+          "base": "09 - La estrella del lugar",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 10,
+          "title": "Pauli Sheeran",
+          "base": "10 - Pauli Sheeran",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 11,
+          "title": "Magia con Crema y Limón",
+          "base": "11 - Magia con Crema y Limón",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 12,
+          "title": "La Reina de Instagram",
+          "base": "12 - La Reina de Instagram",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 13,
+          "title": "Una Década de Sueños Dulces",
+          "base": "13 - Una Década de Sueños Dulces",
+          "pngExists": false,
+          "duration": null
+        }
+      ]
+    },
+    {
+      "id": "albums/Polo AI Vol. 1",
+      "title": "Polo AI Vol. 1",
+      "folder": "albums/Polo AI Vol. 1",
+      "coverExists": true,
+      "artist": "TOXI Media",
+      "date_released": "2025-01-28",
+      "date_added": "2025-10-01",
+      "recommended": true,
+      "tracks": [
+        {
+          "number": 1,
+          "title": "Polos del Futuro",
+          "base": "01 - Polos del Futuro",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 2,
+          "title": "Fortnite Bariloche",
+          "base": "02 - Fortnite Bariloche",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 3,
+          "title": "Bienvenida a Olivia",
+          "base": "03 - Bienvenida a Olivia",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 4,
+          "title": "Lago Guti",
+          "base": "04 - Lago Guti",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 5,
+          "title": "Bienvenido a Bariloche Benja",
+          "base": "05 - Bienvenido a Bariloche Benja",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 6,
+          "title": "Nos vemos, Eliana",
+          "base": "06 - Nos vemos, Eliana",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 7,
+          "title": "Viaje a San Martín",
+          "base": "07 - Viaje a San Martín",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 8,
+          "title": "Oh, ternerito",
+          "base": "08 - Oh, ternerito",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 9,
+          "title": "Aires de Innovación en el Polo IA",
+          "base": "09 - Aires de Innovación en el Polo IA",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 10,
+          "title": "Golf en Bariloche",
+          "base": "10 - Golf en Bariloche",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 11,
+          "title": "En Las Grutas a la Ruta",
+          "base": "11 - En Las Grutas a la Ruta",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 12,
+          "title": "La Berenja Siempre Estará Activa",
+          "base": "12 - La Berenja Siempre Estará Activa",
+          "pngExists": false,
+          "duration": null
+        }
+      ]
+    },
+    {
+      "id": "albums/Popurrí",
+      "title": "Popurrí",
+      "folder": "albums/Popurrí",
+      "coverExists": true,
+      "artist": "Nicolás Martorell",
+      "date_released": "2024-04-11",
+      "date_added": "2025-10-03",
+      "recommended": false,
+      "tracks": [
+        {
+          "number": 1,
+          "title": "Magical Theme",
+          "base": "01 - Magical Theme",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 2,
+          "title": "Reina Hormiguita",
+          "base": "02 - Reina Hormiguita",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 3,
+          "title": "Tabby Blues",
+          "base": "03 - Tabby Blues",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 4,
+          "title": "24 hours",
+          "base": "04 - 24 hours",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 5,
+          "title": "PhBeat",
+          "base": "05 - PhBeat",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 6,
+          "title": "Max, Corazón Valiente",
+          "base": "06 - Max, Corazón Valiente",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 7,
+          "title": "Self-confession",
+          "base": "07 - Self-confession",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 8,
+          "title": "TOXI Theme Song",
+          "base": "08 - TOXI Theme Song",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 9,
+          "title": "Xplora Acapella",
+          "base": "09 - Xplora Acapella",
+          "pngExists": false,
+          "duration": null
+        }
+      ]
+    },
+    {
+      "id": "albums/Tere Y Nico En El Perú",
+      "title": "Tere Y Nico En El Perú",
+      "folder": "albums/Tere Y Nico En El Perú",
+      "coverExists": true,
+      "artist": "Teresa Murad, Nicolás Martorell",
+      "date_released": "2025-08-20",
+      "date_added": "2025-10-01",
+      "recommended": false,
+      "tracks": [
+        {
+          "number": 1,
+          "title": "Eh guachín, la cumbia de Cuzco",
+          "base": "01 - Eh guachín, la cumbia de Cuzco",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 2,
+          "title": "Diez minutos",
+          "base": "02 - Diez minutos",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 3,
+          "title": "Reggae del camino infinito",
+          "base": "03 - Reggae del camino infinito",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 4,
+          "title": "Huaynapicchun't",
+          "base": "04 - Huaynapicchun't",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 5,
+          "title": "Bosque de las nubes",
+          "base": "05 - Bosque de las nubes",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 6,
+          "title": "Pacífico final",
+          "base": "06 - Pacífico final",
+          "pngExists": false,
+          "duration": null
+        }
+      ]
+    },
+    {
+      "id": "albums/Tere Y Nico En Mar Azul",
+      "title": "Tere Y Nico En Mar Azul",
+      "folder": "albums/Tere Y Nico En Mar Azul",
+      "coverExists": true,
+      "artist": "Teresa Murad, Nicolás Martorell",
+      "date_released": "2026-02-22",
+      "date_added": "2026-02-22",
+      "recommended": false,
+      "tracks": [
+        {
+          "number": 1,
+          "title": "San Valentín en la ruta",
+          "base": "01 - San Valentín en la ruta",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 2,
+          "title": "Lluvia en el bosque, sol en el mar",
+          "base": "02 - Lluvia en el bosque, sol en el mar",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 3,
+          "title": "El Amanecer del amor",
+          "base": "03 - El Amanecer del amor",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 4,
+          "title": "Juntos en el mar",
+          "base": "04 - Juntos en el mar",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 5,
+          "title": "Chapuzón express",
+          "base": "05 - Chapuzón express",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 6,
+          "title": "Viento en topo",
+          "base": "06 - Viento en topo",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 7,
+          "title": "Aniversario del bien",
+          "base": "07 - Aniversario del bien",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 8,
+          "title": "Bosque encantado",
+          "base": "08 - Bosque encantado",
+          "pngExists": false,
+          "duration": null
+        }
+      ]
+    },
+    {
+      "id": "albums/Tere Y Nico Y Los Murad",
+      "title": "Tere Y Nico Y Los Murad",
+      "folder": "albums/Tere Y Nico Y Los Murad",
+      "coverExists": true,
+      "artist": "Familia Murad, Nicolás Martorell",
+      "date_released": "2026-01-03",
+      "date_added": "2025-09-12",
+      "recommended": true,
+      "tracks": [
+        {
+          "number": 1,
+          "title": "Adiós Milo",
+          "base": "01 - Adiós Milo",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 2,
+          "title": "Dos Años Después",
+          "base": "02 - Dos Años Después",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 3,
+          "title": "Retiro de Otoño",
+          "base": "03 - Retiro de Otoño",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 4,
+          "title": "Baldy el Leon",
+          "base": "04 - Baldy el Leon",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 5,
+          "title": "La Angostitud de Toledo",
+          "base": "05 - La Angostitud de Toledo",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 6,
+          "title": "La Otra Córdoba",
+          "base": "06 - La Otra Córdoba",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 7,
+          "title": "Un Día Gris Almodóvar",
+          "base": "07 - Un Día Gris Almodóvar",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 8,
+          "title": "El Que Se Fue A Sevilla...",
+          "base": "08 - El Que Se Fue A Sevilla...",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 9,
+          "title": "En Olhao Descansaos",
+          "base": "09 - En Olhao Descansaos",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 10,
+          "title": "Surfeando Portugal",
+          "base": "10 - Surfeando Portugal",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 11,
+          "title": "Adiós Juliana",
+          "base": "11 - Adiós Juliana",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 12,
+          "title": "Yogur Al Sur",
+          "base": "12 - Yogur Al Sur",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 13,
+          "title": "Pastelitos en Lisboa",
+          "base": "13 - Pastelitos en Lisboa",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 14,
+          "title": "Viento de Final",
+          "base": "14 - Viento de Final",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 15,
+          "title": "La Próxima Aventura",
+          "base": "15 - La Próxima Aventura",
+          "pngExists": false,
+          "duration": null
+        }
+      ]
+    },
+    {
+      "id": "albums/The Space Traveler's Mix-Tape",
+      "title": "The Space Traveler's Mix-Tape",
+      "folder": "albums/The Space Traveler's Mix-Tape",
+      "coverExists": true,
+      "artist": "Nicolás Martorell",
+      "date_released": "2024-10-31",
+      "date_added": "2025-10-01",
+      "recommended": true,
+      "tracks": [
+        {
+          "number": 1,
+          "title": "The Sun's Warm Dealers",
+          "base": "01 - The Sun's Warm Dealers",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 2,
+          "title": "Mercury's Outcast",
+          "base": "02 - Mercury's Outcast",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 3,
+          "title": "Under The Venusian Clouds",
+          "base": "03 - Under The Venusian Clouds",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 4,
+          "title": "Humanity's First Home",
+          "base": "04 - Humanity's First Home",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 5,
+          "title": "First Woman On Mars",
+          "base": "05 - First Woman On Mars",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 6,
+          "title": "Asteroid Surfer",
+          "base": "06 - Asteroid Surfer",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 7,
+          "title": "Jupiter's Stowaway",
+          "base": "07 - Jupiter's Stowaway",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 8,
+          "title": "Saturn's Honey Moon",
+          "base": "08 - Saturn's Honey Moon",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 9,
+          "title": "Miranda Summers (Uranus' Blues)",
+          "base": "09 - Miranda Summers (Uranus' Blues)",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 10,
+          "title": "Nep Tune's Party",
+          "base": "10 - Nep Tune's Party",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 11,
+          "title": "Small Ice Marble",
+          "base": "11 - Small Ice Marble",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 12,
+          "title": "Voyager's Goodbye Song",
+          "base": "12 - Voyager's Goodbye Song",
+          "pngExists": false,
+          "duration": null
+        }
+      ]
+    },
+    {
+      "id": "albums/Un Beso Bajo La Lluvia",
+      "title": "Un Beso Bajo La Lluvia",
+      "folder": "albums/Un Beso Bajo La Lluvia",
+      "coverExists": true,
+      "artist": "Teresa Murad, Nicolás Martorell",
+      "date_released": "2025-06-24",
+      "date_added": "2025-10-01",
+      "recommended": true,
+      "tracks": [
+        {
+          "number": 1,
+          "title": "Dónde está Sebastián Frola",
+          "base": "01 - Dónde está Sebastián Frola",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 2,
+          "title": "El Master del Agua",
+          "base": "02 - El Master del Agua",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 3,
+          "title": "Un beso bajo la lluvia",
+          "base": "03 - Un beso bajo la lluvia",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 4,
+          "title": "Chacarera de Los Barrios",
+          "base": "04 - Chacarera de Los Barrios",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 5,
+          "title": "Atardecer en la Garganta",
+          "base": "05 - Atardecer en la Garganta",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 6,
+          "title": "Mariposas en Brasil",
+          "base": "06 - Mariposas en Brasil",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 7,
+          "title": "Un Co-work en Puerto Iguazú",
+          "base": "07 - Un Co-work en Puerto Iguazú",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 8,
+          "title": "Después de la lluvia",
+          "base": "08 - Después de la lluvia",
+          "pngExists": false,
+          "duration": null
+        }
+      ]
+    },
+    {
+      "id": "albums/Venado Tuerto - El Musical NO Autorizado",
+      "title": "Venado Tuerto - El Musical NO Autorizado",
+      "folder": "albums/Venado Tuerto - El Musical NO Autorizado",
+      "coverExists": true,
+      "artist": "J. M. Cafferata",
+      "date_released": "2025-10-07",
+      "date_added": "2025-10-07",
+      "recommended": false,
+      "tracks": [
+        {
+          "number": 1,
+          "title": "Oculus cervi",
+          "base": "01 - Oculus cervi",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 2,
+          "title": "El error",
+          "base": "02 - El error",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 3,
+          "title": "Lumavisión",
+          "base": "03 - Lumavisión",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 4,
+          "title": "El intendente del momento",
+          "base": "04 - El intendente del momento",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 5,
+          "title": "Como Fazer um Stream",
+          "base": "05 - Como Fazer um Stream",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 6,
+          "title": "And the Oscar goes to...",
+          "base": "06 - And the Oscar goes to...",
+          "pngExists": false,
+          "duration": null
+        },
+        {
+          "number": 7,
+          "title": "GVT",
+          "base": "07 - GVT",
+          "pngExists": false,
+          "duration": null
+        }
+      ]
+    }
+  ]
+}
