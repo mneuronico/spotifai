@@ -37,7 +37,6 @@ jobs:
           mkdir -p dist
           cp -r index.html styles.css script.js manifest.json albums dist/
           cp -r favicon.png dist/
-          cp -r favicon-transparent.png dist/
           cp CNAME dist/
           cp manifest.webmanifest sw.js dist/
           cp icon-192.png icon-512.png apple-touch-icon.png favicon-32.png dist/
