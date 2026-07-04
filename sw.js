@@ -1,4 +1,4 @@
-const CACHE = "spotifai-shell-v2";
+const CACHE = "spotifai-shell-v3";
 const SHELL = [
   "./",
   "./index.html",

@@ -46,6 +46,8 @@ let state = {
   today: new Date(),
   globalQueue: null,
   globalQueuePos: -1,
+  preparedAlbumIdx: -1,
+  preparedTrackIdx: -1,
 };
 
 // === Toast ===
@@ -211,9 +213,162 @@ function isNothingPlaying(){
   return els.audio.paused && (els.audio.currentTime === 0);
 }
 
+function canPrepareAlbumPreview(){
+  return els.audio.paused && (
+    state.playingAlbumIdx === -1 ||
+    els.audio.currentTime === 0 ||
+    isNearEnd()
+  );
+}
+
+let playAttemptId = 0;
+let wakeLock = null;
+let keepScreenAwake = false;
+
+function rememberPreparedTrack(albumIdx, trackIdx){
+  state.preparedAlbumIdx = albumIdx;
+  state.preparedTrackIdx = trackIdx;
+}
+
+function isNearEnd(){
+  const d = els.audio.duration;
+  return els.audio.ended || (isFinite(d) && d > 0 && (d - els.audio.currentTime) < 0.25);
+}
+
+async function requestPlaybackWakeLock(){
+  if (!keepScreenAwake || wakeLock || document.visibilityState !== 'visible') return;
+  if (!('wakeLock' in navigator) || !navigator.wakeLock?.request) return;
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', () => {
+      wakeLock = null;
+      if (keepScreenAwake && !els.audio.paused && document.visibilityState === 'visible') {
+        requestPlaybackWakeLock();
+      }
+    });
+  } catch (err) {
+    console.debug('SpotifAI: no se pudo activar Wake Lock', err);
+  }
+}
+
+function releasePlaybackWakeLock(){
+  keepScreenAwake = false;
+  if (!wakeLock) return;
+  const lock = wakeLock;
+  wakeLock = null;
+  lock.release().catch(() => {});
+}
+
+function setPlaybackWakeLockWanted(wanted){
+  keepScreenAwake = wanted;
+  if (wanted) requestPlaybackWakeLock();
+  else releasePlaybackWakeLock();
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && keepScreenAwake && !els.audio.paused) {
+    requestPlaybackWakeLock();
+  }
+});
+
+function userFacingPlayError(err){
+  if (!err) return 'No se pudo iniciar la reproducción';
+  if (err.name === 'NotAllowedError') return 'Tocá play para seguir reproduciendo';
+  if (err.name === 'NotSupportedError') return 'El audio de esta pista no se puede reproducir';
+  return 'No se pudo iniciar la reproducción';
+}
+
+function playAudio({userInitiated = false, showToastOnBlock = true} = {}){
+  const attemptId = ++playAttemptId;
+  state.isBuffering = true;
+  updatePlayIcon();
+
+  let playPromise;
+  try {
+    playPromise = els.audio.play();
+  } catch (err) {
+    playPromise = Promise.reject(err);
+  }
+
+  if (!playPromise || typeof playPromise.then !== 'function') {
+    state.isBuffering = false;
+    updatePlayIcon();
+    setPlaybackWakeLockWanted(true);
+    return Promise.resolve(true);
+  }
+
+  return playPromise
+    .then(() => {
+      if (attemptId !== playAttemptId) return false;
+      setPlaybackWakeLockWanted(true);
+      return true;
+    })
+    .catch((err) => {
+      if (attemptId !== playAttemptId) return false;
+      state.isBuffering = false;
+      updatePlayIcon();
+      updateMediaSessionPlaybackState();
+      const blocked = err && err.name === 'NotAllowedError';
+      if (showToastOnBlock && (userInitiated || blocked)) {
+        showToast(userFacingPlayError(err), blocked ? 3200 : 2600);
+      }
+      console.warn('SpotifAI: play() falló', err);
+      return false;
+    });
+}
+
+function resumeOrStartPrepared({userInitiated = false} = {}){
+  if (state.playingAlbumIdx === -1 && state.preparedAlbumIdx !== -1 && state.preparedTrackIdx !== -1) {
+    startPlayingAt(state.preparedAlbumIdx, state.preparedTrackIdx, {
+      userInitiated,
+      restart: false,
+    });
+    return;
+  }
+
+  if (state.playingAlbumIdx !== -1 && state.playingTrackIdx !== -1 && isNearEnd()) {
+    startPlayingAt(state.playingAlbumIdx, state.playingTrackIdx, {
+      userInitiated,
+      restart: true,
+    });
+    return;
+  }
+
+  playAudio({userInitiated});
+}
+
+function pausePlayback(){
+  playAttemptId++;
+  state.isBuffering = false;
+  els.audio.pause();
+  setPlaybackWakeLockWanted(false);
+  updatePlayIcon();
+  updateMediaSessionPlaybackState();
+}
+
+function setAudioSource(src, {restart = true} = {}){
+  const abs = (new URL(src, location.href)).href;
+  const current = els.audio.currentSrc || els.audio.src;
+
+  if (current !== abs) {
+    els.audio.src = src;
+    try { els.audio.load(); } catch {}
+    return;
+  }
+
+  if (restart || isNearEnd()){
+    try { els.audio.currentTime = 0; } catch {}
+  }
+}
+
 function startPlayingAt(albumIdx, trackIdx, options = {}){
   const queue = Array.isArray(options.queue) && options.queue.length ? options.queue : null;
   const queuePos = typeof options.queuePos === 'number' ? options.queuePos : -1;
+  const restart = options.restart !== false;
+  const userInitiated = !!options.userInitiated;
+  const album = state.albums[albumIdx];
+  const track = album && album.tracks[trackIdx];
+  if (!album || !track) return;
 
   if (queue){
     state.globalQueue = queue;
@@ -231,8 +386,7 @@ function startPlayingAt(albumIdx, trackIdx, options = {}){
   state.selectedAlbumIdx = (state.selectedAlbumIdx === -1 ? albumIdx : state.selectedAlbumIdx);
   if (albumChanged) state.shuffledIndices = null; // reset cuando arranca un nuevo álbum (no entre pistas del mismo álbum)
 
-  const album = state.albums[albumIdx];
-  const track = album.tracks[trackIdx];
+  rememberPreparedTrack(albumIdx, trackIdx);
 
   updateDocumentTitle(track, album);
 
@@ -243,10 +397,9 @@ function startPlayingAt(albumIdx, trackIdx, options = {}){
   els.nowCover.src = trackCoverUrl(album, track);
 
   const src = encodePath(`${album.folder}/${track.base}.mp3`);
-  const abs = (new URL(src, location.href)).href;
-  if (els.audio.src !== abs) els.audio.src = src;
+  setAudioSource(src, {restart});
 
-  els.audio.play().catch(()=>{});
+  playAudio({userInitiated});
   updatePlayIcon();
   highlightCurrentTrack();
   updateCarouselIndicators();
@@ -299,10 +452,10 @@ function setupMediaSessionHandlers(){
   const set = (action, handler) => {
     try { navigator.mediaSession.setActionHandler(action, handler); } catch {}
   };
-  set('play', () => { els.audio.play().catch(()=>{}); });
-  set('pause', () => { els.audio.pause(); });
-  set('nexttrack', () => { playNext(); });
-  set('previoustrack', () => { playPrev(); });
+  set('play', () => { resumeOrStartPrepared({userInitiated: true}); });
+  set('pause', () => { pausePlayback(); });
+  set('nexttrack', () => { playNext({userInitiated: true}); });
+  set('previoustrack', () => { playPrev({userInitiated: true}); });
   set('seekbackward', (e) => {
     const offset = (e && e.seekOffset) || 10;
     els.audio.currentTime = Math.max(0, els.audio.currentTime - offset);
@@ -320,7 +473,7 @@ function setupMediaSessionHandlers(){
       els.audio.currentTime = e.seekTime;
     }
   });
-  set('stop', () => { els.audio.pause(); els.audio.currentTime = 0; });
+  set('stop', () => { pausePlayback(); els.audio.currentTime = 0; });
 }
 
 function updateCarouselIndicators(){
@@ -484,7 +637,7 @@ function selectAlbum(idx){
     els.playAlbumBtn.onclick = () => {
       // Si veníamos de compartir un track, limpiamos el param ?track
       clearTrackFromUrl({ replace: true });
-      if (album.tracks.length > 0) startPlayingAt(idx, 0);
+      if (album.tracks.length > 0) startPlayingAt(idx, 0, {userInitiated: true});
     };
   }
 
@@ -495,7 +648,7 @@ function selectAlbum(idx){
     li.className = 'track';
     li.dataset.index = tIdx;
     li.addEventListener('click', () => {
-      startPlayingAt(idx, tIdx);                    // reproducir
+      startPlayingAt(idx, tIdx, {userInitiated: true}); // reproducir
       setTrackSlugInUrl(trackSlug(album.tracks[tIdx])); // poner ?track=...
     });
     const num = document.createElement('div');
@@ -515,18 +668,19 @@ function selectAlbum(idx){
   });
 
   // 3) If no hay nada sonando, precargar primer tema para "Now Playing"
-  if (isNothingPlaying()) {
+  if (isNothingPlaying() || canPrepareAlbumPreview()) {
     const first = album.tracks[0];
     if (first) {
+      rememberPreparedTrack(idx, 0);
       const albumLabel = album.artist ? `${album.title} — ${album.artist}` : album.title;
       els.nowSong.textContent = `${pad(first.number)} — ${first.title}`;
       els.nowAlbum.textContent = albumLabel;
       els.nowCover.src = trackCoverUrl(album, first);
 
       const src = encodePath(`${album.folder}/${first.base}.mp3`);
-      const abs = (new URL(src, location.href)).href;
-      if (els.audio.src !== abs) els.audio.src = src;
+      setAudioSource(src, {restart: false});
     } else {
+      rememberPreparedTrack(-1, -1);
       els.nowAlbum.textContent = album.artist ? `${album.title} — ${album.artist}` : album.title;
       els.nowSong.textContent = '—';
       els.nowCover.src = albumCoverUrl(album);
@@ -567,7 +721,7 @@ function hasGlobalQueue(){
   return Array.isArray(state.globalQueue) && state.globalQueue.length > 0;
 }
 
-function playGlobalQueueAt(pos){
+function playGlobalQueueAt(pos, options = {}){
   if (!hasGlobalQueue()) return false;
   const len = state.globalQueue.length;
   if (!len) return false;
@@ -582,7 +736,11 @@ function playGlobalQueueAt(pos){
     suppressUrlUpdate = prev;
   }
 
-  startPlayingAt(entry.albumIdx, entry.trackIdx, { queue: state.globalQueue, queuePos: normalized });
+  startPlayingAt(entry.albumIdx, entry.trackIdx, {
+    queue: state.globalQueue,
+    queuePos: normalized,
+    userInitiated: !!options.userInitiated,
+  });
   const album = state.albums[entry.albumIdx];
   if (album) setAlbumSlugInUrl(albumSlug(album), {replace:true});
   const track = album?.tracks?.[entry.trackIdx];
@@ -590,16 +748,16 @@ function playGlobalQueueAt(pos){
   return true;
 }
 
-function playGlobalNext(){
+function playGlobalNext(options = {}){
   if (!hasGlobalQueue()) return false;
   const current = state.globalQueuePos >= 0 ? state.globalQueuePos : 0;
-  return playGlobalQueueAt(current + 1);
+  return playGlobalQueueAt(current + 1, options);
 }
 
-function playGlobalPrev(){
+function playGlobalPrev(options = {}){
   if (!hasGlobalQueue()) return false;
   const current = state.globalQueuePos >= 0 ? state.globalQueuePos : 0;
-  return playGlobalQueueAt(current - 1);
+  return playGlobalQueueAt(current - 1, options);
 }
 
 function nextIndex(){
@@ -635,34 +793,34 @@ function prevIndex(){
   return (state.playingTrackIdx - 1 + album.tracks.length) % album.tracks.length;
 }
 
-function playNext(){
-  if (playGlobalNext()) return;
+function playNext(options = {}){
+  if (playGlobalNext(options)) return;
   const album = state.albums[state.playingAlbumIdx];
   if (!album) return;
   // En modo no-shuffle, al final del álbum saltamos al siguiente álbum
   // (consistente con el auto-advance del evento `ended`)
   if (!state.isShuffle && state.playingTrackIdx === album.tracks.length - 1 && state.albums.length > 1) {
     const nextAlbum = (state.playingAlbumIdx + 1) % state.albums.length;
-    startPlayingAt(nextAlbum, 0);
+    startPlayingAt(nextAlbum, 0, options);
     return;
   }
   const nextIdx = nextIndex();
-  startPlayingAt(state.playingAlbumIdx, nextIdx);
+  startPlayingAt(state.playingAlbumIdx, nextIdx, options);
 }
 
-function playPrev(){
-  if (playGlobalPrev()) return;
+function playPrev(options = {}){
+  if (playGlobalPrev(options)) return;
   const album = state.albums[state.playingAlbumIdx];
   if (!album) return;
   // Simétrico a playNext: en el primer track, retrocedemos al último del álbum anterior
   if (!state.isShuffle && state.playingTrackIdx === 0 && state.albums.length > 1) {
     const prevAlbum = (state.playingAlbumIdx - 1 + state.albums.length) % state.albums.length;
     const lastIdx = state.albums[prevAlbum].tracks.length - 1;
-    startPlayingAt(prevAlbum, Math.max(0, lastIdx));
+    startPlayingAt(prevAlbum, Math.max(0, lastIdx), options);
     return;
   }
   const prevIdx = prevIndex();
-  startPlayingAt(state.playingAlbumIdx, prevIdx);
+  startPlayingAt(state.playingAlbumIdx, prevIdx, options);
 }
 
 // Avanza después de que terminó / falló la pista actual. Devuelve true si se inició algo.
@@ -729,8 +887,8 @@ function updateRepeatButton(){
 
 function attachEvents(){
   els.btnPlayPause.addEventListener('click', ()=>{
-    if (els.audio.paused) els.audio.play().catch(()=>{});
-    else els.audio.pause();
+    if (els.audio.paused) resumeOrStartPrepared({userInitiated: true});
+    else pausePlayback();
   });
   els.audio.addEventListener('play', ()=>{ updatePlayIcon(); updateCarouselIndicators(); });
   els.audio.addEventListener('pause', ()=>{
@@ -740,8 +898,8 @@ function attachEvents(){
     updateCarouselIndicators();
   });
 
-  els.btnNext.addEventListener('click', playNext);
-  els.btnPrev.addEventListener('click', playPrev);
+  els.btnNext.addEventListener('click', () => playNext({userInitiated: true}));
+  els.btnPrev.addEventListener('click', () => playPrev({userInitiated: true}));
 
   els.btnShuffle.addEventListener('click', ()=>{
     state.isShuffle = !state.isShuffle;
@@ -779,7 +937,11 @@ function attachEvents(){
       selectAlbum(first.albumIdx);
       suppressUrlUpdate = prev;
 
-      startPlayingAt(first.albumIdx, first.trackIdx, { queue, queuePos: 0 });
+      startPlayingAt(first.albumIdx, first.trackIdx, {
+        queue,
+        queuePos: 0,
+        userInitiated: true,
+      });
 
       const album = state.albums[first.albumIdx];
       if (album) setAlbumSlugInUrl(albumSlug(album), {replace:true});
@@ -818,13 +980,14 @@ function attachEvents(){
 
   els.audio.addEventListener('ended', ()=>{
     if (state.repeatMode === 'one') {
-      els.audio.currentTime = 0; els.audio.play().catch(()=>{});
+      els.audio.currentTime = 0;
+      playAudio();
       return;
     }
     const advanced = advanceAfterCurrent();
     if (!advanced){
       // Fin de biblioteca / cola sin repeat: paramos en seco.
-      try { els.audio.pause(); } catch {}
+      pausePlayback();
       updateMediaSessionPlaybackState();
     }
   });
@@ -1030,13 +1193,13 @@ async function loadManifest(){
         // mostrar info de ese track sin reproducir
         const alb = state.albums[initIdx];
         const t = alb.tracks[trkIdx];
+        rememberPreparedTrack(initIdx, trkIdx);
         els.nowSong.textContent = `${pad(t.number)} — ${t.title}`;
         els.nowAlbum.textContent = alb.artist ? `${alb.title} — ${alb.artist}` : alb.title;
         els.nowCover.src = trackCoverUrl(alb, t);
-        // no seteamos els.audio.play(); ni cambiamos src (si querés, podés precargar metadata):
+        // Preparamos la pista sin iniciar reproducción.
         const src = encodePath(`${alb.folder}/${t.base}.mp3`);
-        const abs = (new URL(src, location.href)).href;
-        if (els.audio.src !== abs) els.audio.src = src; // solo preload, no reproducir
+        setAudioSource(src, {restart: false});
       }
     }
 
@@ -1057,12 +1220,12 @@ async function loadManifest(){
             // Solo mostrar/preparar, sin autoplay
             const alb = state.albums[idxAlb];
             const t = alb.tracks[trkIdx];
+            rememberPreparedTrack(idxAlb, trkIdx);
             els.nowSong.textContent = `${pad(t.number)} — ${t.title}`;
             els.nowAlbum.textContent = alb.artist ? `${alb.title} — ${alb.artist}` : alb.title;
             els.nowCover.src = trackCoverUrl(alb, t);
             const src = encodePath(`${alb.folder}/${t.base}.mp3`);
-            const abs = (new URL(src, location.href)).href;
-            if (els.audio.src !== abs) els.audio.src = src;
+            setAudioSource(src, {restart: false});
           }
         }
       }
