@@ -212,6 +212,12 @@ body{
   gap:12px; margin-bottom:10px;
 }
 .album-header h2{margin:0}
+.album-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-shrink:0;
+}
 .album-meta{
   display:flex; align-items:center; gap:8px;
   color:var(--muted); font-size:13px;
@@ -278,6 +284,25 @@ body{
 }
 .btn-spotify[aria-pressed="true"]{
   outline: 2px solid #86efac; /* opcional */
+}
+
+.btn-download{
+  background:#121722;
+  border-color:#344155;
+  color:#cbd5e1;
+}
+.btn-download:hover{
+  background:#182033;
+}
+.btn-download[aria-pressed="true"]{
+  background:#123225;
+  border-color:#1DB954;
+  color:#86efac;
+  outline:none;
+}
+.btn-download:disabled{
+  cursor:progress;
+  opacity:.78;
 }
 
 

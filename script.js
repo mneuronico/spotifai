@@ -27,6 +27,10 @@ const els = {
   vol: document.getElementById('vol'),
   sortMode: document.getElementById('sortMode'),
   playAlbumBtn: document.getElementById('playAlbumBtn'),
+  downloadAlbumBtn: document.getElementById('downloadAlbumBtn'),
+  iconDownload: document.getElementById('iconDownload'),
+  iconOfflineReady: document.getElementById('iconOfflineReady'),
+  iconOfflineBusy: document.getElementById('iconOfflineBusy'),
   albumRelease: document.getElementById('albumRelease'),
   albumArtist: document.getElementById('albumArtist'),
   surpriseBtn: document.getElementById('surpriseBtn'),
@@ -48,6 +52,8 @@ let state = {
   globalQueuePos: -1,
   preparedAlbumIdx: -1,
   preparedTrackIdx: -1,
+  offlineAlbums: {},
+  offlineDownload: null,
 };
 
 // === Toast ===
@@ -183,6 +189,216 @@ function trackCoverUrl(album, track){
 function albumCoverUrl(album){
   if (album.coverExists) return encodePath(`${album.folder}/cover.png`);
   return makePlaceholderDataURL(album.title);
+}
+
+const OFFLINE_CACHE_NAME = 'spotifai-offline-v1';
+const OFFLINE_ALBUMS_KEY = 'spotifai:offline-albums:v1';
+
+function supportsOfflineDownloads(){
+  return 'caches' in window && 'fetch' in window;
+}
+
+function loadOfflineAlbums(){
+  try {
+    const raw = localStorage.getItem(OFFLINE_ALBUMS_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveOfflineAlbums(){
+  try {
+    localStorage.setItem(OFFLINE_ALBUMS_KEY, JSON.stringify(state.offlineAlbums || {}));
+  } catch {}
+}
+
+function albumOfflineKey(album){
+  return album?.id || album?.folder || album?.title || '';
+}
+
+function absoluteAssetUrl(path){
+  return new URL(encodePath(path), location.href).href;
+}
+
+function albumOfflineAssetUrls(album){
+  if (!album) return [];
+  const urls = [];
+
+  if (album.coverExists) urls.push(`${album.folder}/cover.png`);
+  for (const track of album.tracks || []){
+    urls.push(`${album.folder}/${track.base}.mp3`);
+    if (track.pngExists) urls.push(`${album.folder}/${track.base}.png`);
+  }
+
+  return [...new Set(urls)].map(absoluteAssetUrl);
+}
+
+function isAlbumOffline(album){
+  const key = albumOfflineKey(album);
+  return !!(key && state.offlineAlbums && state.offlineAlbums[key]);
+}
+
+function setOfflineIcon(mode){
+  if (!els.iconDownload || !els.iconOfflineReady || !els.iconOfflineBusy) return;
+  els.iconDownload.style.display = mode === 'download' ? '' : 'none';
+  els.iconOfflineReady.style.display = mode === 'ready' ? '' : 'none';
+  els.iconOfflineBusy.style.display = mode === 'busy' ? '' : 'none';
+}
+
+function updateOfflineButton(){
+  if (!els.downloadAlbumBtn) return;
+  const album = state.albums[state.selectedAlbumIdx];
+  const canUse = supportsOfflineDownloads();
+  const hasTracks = !!(album && album.tracks && album.tracks.length);
+  const isAnyBusy = !!state.offlineDownload;
+  const isBusy = !!(state.offlineDownload && album && state.offlineDownload.albumId === albumOfflineKey(album));
+  const isReady = !!(album && isAlbumOffline(album));
+
+  els.downloadAlbumBtn.hidden = !album;
+  els.downloadAlbumBtn.disabled = !canUse || !hasTracks || isAnyBusy;
+  els.downloadAlbumBtn.classList.toggle('is-downloading', isBusy);
+  els.downloadAlbumBtn.setAttribute('aria-pressed', String(isReady));
+
+  if (!canUse){
+    els.downloadAlbumBtn.title = 'Descarga offline no disponible';
+    els.downloadAlbumBtn.setAttribute('aria-label', 'Descarga offline no disponible');
+    setOfflineIcon('download');
+    return;
+  }
+
+  if (isAnyBusy){
+    const done = state.offlineDownload.done || 0;
+    const total = state.offlineDownload.total || 0;
+    const label = isBusy && total ? `Descargando ${done}/${total}` : 'Descarga en curso';
+    els.downloadAlbumBtn.title = label;
+    els.downloadAlbumBtn.setAttribute('aria-label', label);
+    setOfflineIcon('busy');
+    return;
+  }
+
+  if (isReady){
+    els.downloadAlbumBtn.title = 'Borrar descarga offline';
+    els.downloadAlbumBtn.setAttribute('aria-label', 'Borrar descarga offline');
+    setOfflineIcon('ready');
+    return;
+  }
+
+  els.downloadAlbumBtn.title = 'Descargar para escuchar offline';
+  els.downloadAlbumBtn.setAttribute('aria-label', 'Descargar para escuchar offline');
+  setOfflineIcon('download');
+}
+
+async function requestPersistentOfflineStorage(){
+  if (!navigator.storage?.persist) return false;
+  try {
+    return await navigator.storage.persist();
+  } catch {
+    return false;
+  }
+}
+
+async function verifyOfflineAlbum(albumIdx){
+  if (!supportsOfflineDownloads()) return false;
+  const album = state.albums[albumIdx];
+  if (!album || !isAlbumOffline(album)) return false;
+  const key = albumOfflineKey(album);
+  const urls = state.offlineAlbums[key]?.assetUrls || albumOfflineAssetUrls(album);
+
+  try {
+    const cache = await caches.open(OFFLINE_CACHE_NAME);
+    for (const url of urls){
+      const cached = await cache.match(url);
+      if (!cached){
+        delete state.offlineAlbums[key];
+        saveOfflineAlbums();
+        if (state.selectedAlbumIdx === albumIdx) updateOfflineButton();
+        showToast('La descarga offline ya no está disponible', 3200);
+        return false;
+      }
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function removeOfflineAlbum(album, {silent = false} = {}){
+  if (!supportsOfflineDownloads() || !album) return;
+  const key = albumOfflineKey(album);
+  const urls = state.offlineAlbums[key]?.assetUrls || albumOfflineAssetUrls(album);
+
+  try {
+    const cache = await caches.open(OFFLINE_CACHE_NAME);
+    await Promise.all(urls.map((url) => cache.delete(url)));
+  } catch {}
+
+  delete state.offlineAlbums[key];
+  saveOfflineAlbums();
+  updateOfflineButton();
+  if (!silent) showToast('Descarga offline borrada');
+}
+
+async function downloadOfflineAlbum(albumIdx){
+  if (!supportsOfflineDownloads()){
+    showToast('Descarga offline no disponible en este navegador', 3200);
+    return;
+  }
+
+  const album = state.albums[albumIdx];
+  if (!album || !album.tracks?.length) return;
+  const key = albumOfflineKey(album);
+  const urls = albumOfflineAssetUrls(album);
+  if (!urls.length) return;
+
+  state.offlineDownload = { albumId: key, done: 0, total: urls.length };
+  updateOfflineButton();
+
+  const cache = await caches.open(OFFLINE_CACHE_NAME);
+  const cachedUrls = [];
+
+  try {
+    await requestPersistentOfflineStorage();
+
+    for (let i = 0; i < urls.length; i++){
+      const url = urls[i];
+      const res = await fetch(url, { cache: 'reload' });
+      if (!res.ok || res.status === 206) {
+        throw new Error(`No se pudo descargar ${url}`);
+      }
+      await cache.put(url, res.clone());
+      cachedUrls.push(url);
+      state.offlineDownload.done = i + 1;
+      updateOfflineButton();
+    }
+
+    state.offlineAlbums[key] = {
+      title: album.title,
+      assetUrls: urls,
+      downloadedAt: new Date().toISOString(),
+    };
+    saveOfflineAlbums();
+    showToast('Álbum disponible offline', 2600);
+  } catch (err) {
+    console.warn('SpotifAI: descarga offline falló', err);
+    await Promise.all(cachedUrls.map((url) => cache.delete(url)));
+    showToast('No se pudo descargar el álbum', 3200);
+  } finally {
+    state.offlineDownload = null;
+    updateOfflineButton();
+  }
+}
+
+async function handleOfflineAlbumAction(){
+  const album = state.albums[state.selectedAlbumIdx];
+  if (!album || state.offlineDownload) return;
+
+  if (isAlbumOffline(album)){
+    await removeOfflineAlbum(album);
+  } else {
+    await downloadOfflineAlbum(state.selectedAlbumIdx);
+  }
 }
 
 function parseDateYYYYMMDD(s){
@@ -699,6 +915,8 @@ function selectAlbum(idx){
   // 5) UI
   highlightCurrentTrack();
   updateCarouselIndicators();
+  updateOfflineButton();
+  verifyOfflineAlbum(idx);
 
   // 6) Fallback de duraciones
   if (typeof fillMissingDurationsForAlbum === 'function') fillMissingDurationsForAlbum(idx);
@@ -886,6 +1104,10 @@ function updateRepeatButton(){
 
 
 function attachEvents(){
+  if (els.downloadAlbumBtn){
+    els.downloadAlbumBtn.addEventListener('click', handleOfflineAlbumAction);
+  }
+
   els.btnPlayPause.addEventListener('click', ()=>{
     if (els.audio.paused) resumeOrStartPrepared({userInitiated: true});
     else pausePlayback();
@@ -1145,6 +1367,7 @@ async function loadManifest(){
     attachEvents();
     setupMediaSessionHandlers();
     await loadManifest();
+    state.offlineAlbums = loadOfflineAlbums();
 
     state.sortMode = 'recommended_first';
     applySortAndRender();
