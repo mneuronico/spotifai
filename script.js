@@ -186,6 +186,12 @@ function trackCoverUrl(album, track){
   return makePlaceholderDataURL(album.title);
 }
 
+function trackDownloadFilename(album, track){
+  // "Álbum - 01 - Título.mp3", sin caracteres inválidos en Windows/macOS
+  const name = `${album.title} - ${track.base}`.replace(/[\\/:*?"<>|]+/g, '_').trim();
+  return `${name}.mp3`;
+}
+
 function albumCoverUrl(album){
   if (album.coverExists) return encodePath(`${album.folder}/cover.png`);
   return makePlaceholderDataURL(album.title);
@@ -879,7 +885,17 @@ function selectAlbum(idx){
     dur.className = 'duration';
     dur.textContent = (typeof t.duration === 'number') ? fmtTime(t.duration) : '—';
 
-    li.append(num, title, dur);
+    const dl = document.createElement('a');
+    dl.className = 'track-download';
+    dl.href = encodePath(`${album.folder}/${t.base}.mp3`);
+    dl.download = trackDownloadFilename(album, t);
+    dl.title = `Descargar «${t.title}» (MP3)`;
+    dl.setAttribute('aria-label', `Descargar ${t.title} en MP3`);
+    dl.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    // Que el click en descargar no dispare la reproducción de la fila
+    dl.addEventListener('click', (e) => e.stopPropagation());
+
+    li.append(num, title, dur, dl);
     els.trackList.appendChild(li);
   });
 

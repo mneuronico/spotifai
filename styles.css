@@ -193,13 +193,20 @@ body{
 .tracks-panel h2{margin:0 0 10px}
 .track-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
 .track{
-  display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;
+  display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center;
   background:#12151b;border:1px solid #202532;border-radius:12px;padding:10px;cursor:pointer;
 }
 .track:hover{background:#151923}
 .track .num{color:var(--muted);font-variant-numeric:tabular-nums}
 .track .title{font-size:14px}
 .track .duration{color:var(--muted);font-size:12px}
+.track-download{
+  display:grid;place-items:center;
+  width:32px;height:32px;margin:-6px -4px -6px 0;
+  border-radius:999px;color:var(--muted);text-decoration:none;
+}
+.track-download:hover{color:var(--text);background:#1c2230}
+.track-download:focus-visible{outline:2px solid var(--accent);outline-offset:1px;color:var(--text)}
 
 .album-artist{
   margin-top:2px;
